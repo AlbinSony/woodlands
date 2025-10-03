@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import ScrollReveal from './ScrollReveal';
 
 const roomsData = [
@@ -131,13 +132,13 @@ const Rooms = () => {
                     <span className="text-base md:text-lg text-white/70 font-normal">/night</span>
                   </div>
                 </div>
-                <a
-                  href="#book"
+                <Link
+                  to={`/room/${['primeDeluxe','economy','fiveBedded','dormitory'][activeRoom]}`}
                   className="inline-flex items-center gap-2 px-6 md:px-8 py-2.5 md:py-3 rounded-full border-2 border-white text-white hover:bg-white hover:text-primary font-semibold uppercase text-xs md:text-sm tracking-wide transition-all"
                 >
                   Room Details
                   <i className="fas fa-arrow-right text-xs"></i>
-                </a>
+                </Link>
               </div>
             </div>
 

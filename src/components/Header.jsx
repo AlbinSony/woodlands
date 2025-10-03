@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -9,9 +10,13 @@ const Header = () => {
       <nav className="bg-white px-4 md:px-8 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           {/* Logo */}
-          <a href="#" className="text-primary font-garamond text-2xl md:text-3xl font-bold tracking-wide hover:opacity-90 transition">
-            WOODLANDS
-          </a>
+          <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition">
+            <img 
+              src="/woodlandslogo.png" 
+              alt="Woodlands Logo" 
+              className="h-14 md:h-16 lg:h-18 w-auto object-contain"
+            />
+          </Link>
 
           {/* Desktop Menu */}
           <ul className="hidden lg:flex items-center space-x-8">

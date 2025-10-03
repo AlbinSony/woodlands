@@ -81,11 +81,11 @@ const Experiences = () => {
               <div className="flex items-center justify-between mt-8">
                 {/* Counter */}
                 <div className="flex items-center gap-8">
-                  <div className="text-4xl md:text-5xl font-bold text-gray-900 font-garamond">
+                  <div className="text-4xl md:text-5xl font-bold text-primary font-garamond">
                     {String(currentIndex + 1).padStart(2, '0')}
                   </div>
                   <div className="h-px bg-gray-300 w-32 md:w-48"></div>
-                  <div className="text-lg text-gray-600 font-garamond">
+                  <div className="text-lg text-primary font-garamond">
                     Activities
                   </div>
                 </div>
@@ -94,14 +94,14 @@ const Experiences = () => {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={handlePrev}
-                    className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-accent hover:bg-accent/90 text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
+                    className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary hover:bg-primaryDark text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
                     aria-label="Previous activity"
                   >
                     <i className="fas fa-arrow-left text-lg"></i>
                   </button>
                   <button
                     onClick={handleNext}
-                    className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-accent hover:bg-accent/90 text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
+                    className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary hover:bg-primaryDark text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
                     aria-label="Next activity"
                   >
                     <i className="fas fa-arrow-right text-lg"></i>
@@ -135,7 +135,7 @@ const Experiences = () => {
               </p>
 
               {/* CTA Button */}
-              <button className="inline-flex items-center gap-2 px-8 py-3 rounded-full border-2 border-accent text-accent hover:bg-accent hover:text-white font-semibold uppercase text-sm tracking-wide transition-all">
+              <button className="inline-flex items-center gap-2 px-8 py-3 rounded-full border-2 border-primary text-primary hover:bg-primary hover:text-white font-semibold uppercase text-sm tracking-wide transition-all">
                 {currentExperience.buttonText}
               </button>
             </div>

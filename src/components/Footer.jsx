@@ -151,8 +151,12 @@ const Footer = () => {
       <div className="border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-center md:text-left">
-              <p className="text-2xl md:text-3xl font-bold font-garamond mb-2 text-primary">WOODLANDS</p>
+            <div className="text-center md:text-left flex flex-col items-center md:items-start">
+              <img 
+                src="/woodlandslogo.png" 
+                alt="Woodlands Logo" 
+                className="h-20 md:h-24 lg:h-28 w-auto object-contain mb-3"
+              />
               <p className="text-gray-600 text-sm">
                 © {new Date().getFullYear()} Woodlands. All Rights Reserved.
               </p>
