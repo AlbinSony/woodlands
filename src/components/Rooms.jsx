@@ -86,7 +86,7 @@ const Rooms = () => {
                 onClick={() => setActiveRoom(index)}
                 className={`px-4 md:px-6 lg:px-8 py-2 md:py-2.5 font-semibold text-xs md:text-sm lg:text-base transition-all ${
                   activeRoom === index
-                    ? 'text-accent border-b-2 border-accent'
+                    ? 'text-white border-b-2 border-white'
                     : 'text-white/60 hover:text-white/90'
                 }`}
               >
@@ -133,7 +133,7 @@ const Rooms = () => {
                 </div>
                 <a
                   href="#book"
-                  className="inline-flex items-center gap-2 px-6 md:px-8 py-2.5 md:py-3 rounded-full border-2 border-accent text-accent hover:bg-accent hover:text-white font-semibold uppercase text-xs md:text-sm tracking-wide transition-all"
+                  className="inline-flex items-center gap-2 px-6 md:px-8 py-2.5 md:py-3 rounded-full border-2 border-white text-white hover:bg-white hover:text-primary font-semibold uppercase text-xs md:text-sm tracking-wide transition-all"
                 >
                   Room Details
                   <i className="fas fa-arrow-right text-xs"></i>
