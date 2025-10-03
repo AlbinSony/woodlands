@@ -1,11 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [prevScrollPos, setPrevScrollPos] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const [isHeroSection, setIsHeroSection] = useState(true);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollPos = window.scrollY;
+      const heroSectionHeight = window.innerHeight;
+      
+      // Check if we're in hero section
+      const inHeroSection = currentScrollPos < heroSectionHeight;
+      setIsHeroSection(inHeroSection);
+      
+      // Always show navbar in hero section
+      if (inHeroSection) {
+        setVisible(true);
+        setPrevScrollPos(currentScrollPos);
+        return;
+      }
+
+      // Handle scroll direction after hero section
+      const isScrollingDown = prevScrollPos < currentScrollPos;
+      
+      setVisible(!isScrollingDown);
+      setPrevScrollPos(currentScrollPos);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [prevScrollPos]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-lg">
+    <header 
+      className={`fixed top-0 left-0 right-0 z-50 bg-white shadow-lg transition-transform duration-300 ${
+        !visible ? '-translate-y-full' : 'translate-y-0'
+      }`}>
       {/* Main Navigation */}
       <nav className="bg-white px-4 md:px-8 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">

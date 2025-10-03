@@ -12,8 +12,7 @@ import Gallery from './components/Gallery';
 import BookingForm from './components/BookingForm';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
-import SectionDivider from './components/SectionDivider';
-import './App.css';
+
 
 function App() {
   useEffect(() => {
