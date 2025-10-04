@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import ScrollReveal from './ScrollReveal';
+import { roomPricing } from '../roomData.js';
 
 const roomsData = [
   {
@@ -14,7 +15,7 @@ const roomsData = [
       { icon: 'fa-users', text: '6 guests' },
     ],
     image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
-    price: '₹1,000',
+    price: `₹${roomPricing.primeDeluxe}`,
   },
   {
     id: 2,
@@ -27,7 +28,7 @@ const roomsData = [
       { icon: 'fa-users', text: '3 guests' },
     ],
     image: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80',
-    price: '₹650',
+    price: `₹${roomPricing.economy}`,
   },
   {
     id: 3,
@@ -40,7 +41,7 @@ const roomsData = [
       { icon: 'fa-users', text: '8 guests' },
     ],
     image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
-    price: '₹1,800',
+    price: `₹${roomPricing.fiveBedded}`,
   },
   {
     id: 4,
@@ -53,7 +54,7 @@ const roomsData = [
       { icon: 'fa-users', text: '8 guests' },
     ],
     image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&q=80',
-    price: '₹250',
+    price: `₹${roomPricing.dormitory}`,
   },
 ];
 

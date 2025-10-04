@@ -3,8 +3,9 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ScrollToTop from "../components/ScrollToTop";
 import ScrollReveal from "../components/ScrollReveal";
+import { roomPricing } from "../roomData.js";
 
-// Room details data with updated pricing
+// Room details data using centralized pricing
 const roomDetails = {
   primeDeluxe: {
     id: "primeDeluxe",
@@ -31,7 +32,6 @@ const roomDetails = {
       "Intercom Facility",
       "Hot & Cold Water"
     ],
-    price: "₹1,000/night",
     capacity: "Accommodates up to 4 guests",
     size: "Spacious 80m² room with modern furnishing",
     terms:
@@ -59,7 +59,6 @@ const roomDetails = {
       "Hot & Cold Water",
       "Intercom Facility"
     ],
-    price: "₹650/night",
     capacity: "Accommodates up to 3 guests",
     size: "Cozy 40m² room with essential facilities",
     terms:
@@ -92,7 +91,6 @@ const roomDetails = {
       "Intercom Facility",
       "Extra Storage Space"
     ],
-    price: "₹1,800/night",
     capacity: "Accommodates up to 8 guests comfortably",
     size: "Spacious 120m² room with 5 comfortable beds",
     terms:
@@ -122,7 +120,6 @@ const roomDetails = {
       "Reading Lights",
       "Power Outlets near beds"
     ],
-    price: "₹250/night per head",
     capacity: "8 beds in shared dormitory",
     size: "60m² shared space with individual bed allocation",
     terms:
@@ -130,15 +127,49 @@ const roomDetails = {
   },
 };
 
-// Dummy calendar and booking logic
+// Booking calculation function
+const calcTotal = (checkIn, checkOut, guests, mattresses, roomId) => {
+  if (!checkIn || !checkOut) return 0;
+  
+  const nights = Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
+  if (nights <= 0) return 0;
+  
+  const basePrice = roomPricing[roomId];
+  let total = 0;
+  
+  if (roomId === "dormitory") {
+    // Dormitory: price per head per night
+    total = nights * basePrice * guests;
+  } else {
+    // Regular rooms: base price + extra mattress cost
+    total = nights * basePrice + nights * mattresses * roomPricing.extraMattress;
+  }
+  
+  return total;
+};
+
+// Room detail component with booking calculation
 const RoomDetail = ({ roomType = "primeDeluxe" }) => {
   const room = roomDetails[roomType] || roomDetails.primeDeluxe;
   const [selectedImage, setSelectedImage] = useState(0);
+  
+  // Booking state
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
+  const [guests, setGuests] = useState(room.id === 'dormitory' ? 1 : 2);
+  const [mattresses, setMattresses] = useState(0);
+  const [totalPrice, setTotalPrice] = useState(0);
 
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [roomType]);
+  
+  // Calculate total price when booking details change
+  useEffect(() => {
+    const total = calcTotal(checkIn, checkOut, guests, mattresses, room.id);
+    setTotalPrice(total);
+  }, [checkIn, checkOut, guests, mattresses, room.id]);
 
   return (
     <div className="bg-white min-h-screen flex flex-col">
@@ -154,7 +185,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-gray-50 rounded-xl p-4">
                   <span className="text-2xl md:text-3xl font-bold text-primary font-garamond block">
-                    {room.price}
+                    ₹{roomPricing[room.id]}{room.id === 'dormitory' ? '/night per head' : '/night'}
                   </span>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
@@ -248,7 +279,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                       </div>
                       <div>
                         <span className="text-gray-900 font-semibold">Extra Mattress Available</span>
-                        <p className="text-sm text-gray-600">Additional sleeping arrangements at ₹250/night per mattress</p>
+                        <p className="text-sm text-gray-600">Additional sleeping arrangements at ₹{roomPricing.extraMattress}/night per mattress</p>
                       </div>
                     </div>
                   </div>
@@ -270,6 +301,8 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Check-in Date</label>
                       <input 
                         type="date" 
+                        value={checkIn}
+                        onChange={(e) => setCheckIn(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
                       />
                     </div>
@@ -277,16 +310,21 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Check-out Date</label>
                       <input 
                         type="date" 
+                        value={checkOut}
+                        onChange={(e) => setCheckOut(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Guests</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        {room.id === 'dormitory' ? 'Number of Persons' : 'Guests'}
+                      </label>
                       <input 
                         type="number" 
                         min="1" 
-                        max={room.id === 'dormitory' ? "1" : "10"} 
-                        defaultValue={room.id === 'dormitory' ? "1" : "2"}
+                        max={room.id === 'dormitory' ? "8" : "10"} 
+                        value={guests}
+                        onChange={(e) => setGuests(parseInt(e.target.value) || 1)}
                         className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
                       />
                     </div>
@@ -304,7 +342,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                           </div>
                         </div>
                         <div className="text-right">
-                          <span className="text-2xl font-bold text-primary">₹250</span>
+                          <span className="text-2xl font-bold text-primary">₹{roomPricing.extraMattress}</span>
                           <p className="text-sm text-gray-600">per night each</p>
                         </div>
                       </div>
@@ -315,7 +353,8 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                             type="number" 
                             min="0" 
                             max="3" 
-                            defaultValue="0"
+                            value={mattresses}
+                            onChange={(e) => setMattresses(parseInt(e.target.value) || 0)}
                             className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
                           />
                         </div>
