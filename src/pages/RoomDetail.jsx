@@ -4,7 +4,7 @@ import Footer from "../components/Footer";
 import ScrollToTop from "../components/ScrollToTop";
 import ScrollReveal from "../components/ScrollReveal";
 
-// Dummy data for demonstration
+// Room details data with updated pricing
 const roomDetails = {
   primeDeluxe: {
     id: "primeDeluxe",
@@ -12,79 +12,121 @@ const roomDetails = {
     images: [
       "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80",
       "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80",
-      "https://images.unsplash.com/photo-1464983953574-0892a716854b?w=800&q=80"
+      "https://images.unsplash.com/photo-1464983953574-0892a716854b?w=800&q=80",
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80"
     ],
     description:
-      "Spacious and elegantly designed rooms with modern amenities for a comfortable stay. Perfect for couples and small families seeking luxury and comfort. Enjoy beautiful views and premium facilities.",
+      "Experience luxury and comfort in our Prime Deluxe Room. Spacious and elegantly designed with modern amenities, this room is perfect for couples and small families seeking a premium stay. Enjoy beautiful views, comfortable bedding, and top-notch facilities that make your stay memorable.",
     amenities: [
       "Air Conditioning",
-      "Free Wi-Fi",
-      "Room Service",
-      "Mini Fridge",
-      "Balcony",
-      "Flat-screen TV"
+      "Free High-Speed Wi-Fi",
+      "24/7 Room Service",
+      "Mini Refrigerator",
+      "Private Balcony with View",
+      "LED Smart TV with Cable",
+      "Complimentary Breakfast",
+      "Daily Housekeeping",
+      "Wardrobe & Storage",
+      "Premium Bedding & Linens",
+      "Intercom Facility",
+      "Hot & Cold Water"
     ],
-    price: "₹3,500/night",
+    price: "₹1,000/night",
+    capacity: "Accommodates up to 4 guests",
+    size: "Spacious 80m² room with modern furnishing",
     terms:
-      "Check-in: 2:00 PM | Check-out: 11:00 AM. No smoking. Pets not allowed. Cancellation policy applies.",
+      "Check-in: 2:00 PM | Check-out: 11:00 AM. No smoking inside rooms. Prior approval required for pets. 24-hour cancellation policy applies. Extra charges for additional services.",
   },
   economy: {
     id: "economy",
     name: "Economy Room",
     images: [
       "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80",
-      "https://images.unsplash.com/photo-1503676382389-4809596d5290?w=800&q=80"
+      "https://images.unsplash.com/photo-1503676382389-4809596d5290?w=800&q=80",
+      "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&q=80"
     ],
     description:
-      "Cozy and affordable rooms perfect for budget-conscious travelers. Clean, comfortable, and equipped with all basic amenities for a pleasant stay.",
+      "Our Economy Room offers comfortable and affordable accommodation for budget-conscious travelers. Clean, well-maintained, and equipped with essential amenities for a pleasant stay. Perfect for solo travelers, couples, or small families looking for value for money.",
     amenities: [
-      "Ceiling Fan",
+      "Ceiling Fan or AC (on request)",
       "Free Wi-Fi",
-      "Room Service",
-      "Shared Balcony"
+      "Room Service (limited hours)",
+      "Shared/Private Balcony",
+      "Basic TV with Local Channels",
+      "Daily Housekeeping",
+      "Wardrobe & Storage Space",
+      "Clean Bed Linens",
+      "Hot & Cold Water",
+      "Intercom Facility"
     ],
-    price: "₹1,500/night",
+    price: "₹650/night",
+    capacity: "Accommodates up to 3 guests",
+    size: "Cozy 40m² room with essential facilities",
     terms:
-      "Check-in: 2:00 PM | Check-out: 11:00 AM. No smoking. Pets not allowed. Cancellation policy applies.",
+      "Check-in: 2:00 PM | Check-out: 11:00 AM. No smoking inside rooms. Pets not allowed. 24-hour cancellation policy applies. Extra charges for additional services.",
   },
   fiveBedded: {
     id: "fiveBedded",
-    name: "5-Bedded Deluxe",
+    name: "5-Bedded Deluxe Room",
     images: [
       "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80",
-      "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=800&q=80"
+      "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=800&q=80",
+      "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80",
+      "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&q=80"
     ],
     description:
-      "Perfect for families and groups, with ample space and comfort. Large room with multiple beds and a spacious living area for quality time together.",
+      "Ideal for large families and groups, our 5-Bedded Deluxe Room provides ample space and comfort for everyone. Featuring multiple beds, a spacious living area, and premium amenities, this room ensures a comfortable stay for groups while maintaining privacy and convenience.",
     amenities: [
       "Air Conditioning",
-      "Free Wi-Fi",
-      "Room Service",
-      "Living Area",
-      "Balcony"
+      "Free High-Speed Wi-Fi",
+      "24/7 Room Service",
+      "Spacious Living Area",
+      "Multiple Balconies",
+      "LED Smart TV with Cable",
+      "Mini Refrigerator",
+      "Complimentary Breakfast",
+      "Daily Housekeeping",
+      "Multiple Wardrobes",
+      "Separate Seating Area",
+      "Hot & Cold Water",
+      "Intercom Facility",
+      "Extra Storage Space"
     ],
-    price: "₹6,000/night",
+    price: "₹1,800/night",
+    capacity: "Accommodates up to 8 guests comfortably",
+    size: "Spacious 120m² room with 5 comfortable beds",
     terms:
-      "Check-in: 2:00 PM | Check-out: 11:00 AM. No smoking. Pets not allowed. Cancellation policy applies.",
+      "Check-in: 2:00 PM | Check-out: 11:00 AM. No smoking inside rooms. Prior approval required for pets. 24-hour cancellation policy applies. Group bookings require advance payment.",
   },
   dormitory: {
     id: "dormitory",
-    name: "Dormitory",
+    name: "Dormitory (Per Head)",
     images: [
       "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&q=80",
-      "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?w=800&q=80"
+      "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?w=800&q=80",
+      "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80"
     ],
     description:
-      "Budget-friendly shared accommodation for backpackers and solo travelers. Meet fellow travelers while enjoying a comfortable and secure stay.",
+      "Budget-friendly shared accommodation perfect for backpackers, solo travelers, and groups looking for affordable lodging. Our dormitory provides a safe, clean, and social environment where you can meet fellow travelers while enjoying basic comfort and security.",
     amenities: [
-      "Shared Bathroom",
+      "Shared Air Conditioning",
       "Free Wi-Fi",
-      "Lockers",
-      "Common Area"
+      "Shared Bathroom Facilities",
+      "Personal Storage Lockers",
+      "Common Recreation Area",
+      "Shared Kitchen Access",
+      "Daily Cleaning",
+      "Security Lockers",
+      "Hot & Cold Water",
+      "Common TV Area",
+      "Reading Lights",
+      "Power Outlets near beds"
     ],
-    price: "₹500/night",
+    price: "₹250/night per head",
+    capacity: "8 beds in shared dormitory",
+    size: "60m² shared space with individual bed allocation",
     terms:
-      "Check-in: 2:00 PM | Check-out: 11:00 AM. No smoking. Pets not allowed. Cancellation policy applies.",
+      "Check-in: 2:00 PM | Check-out: 11:00 AM. No smoking in dormitory. Alcohol not permitted in shared areas. Quiet hours: 10 PM - 7 AM. Personal belongings security is guest's responsibility.",
   },
 };
 
@@ -109,10 +151,20 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary font-garamond mb-4">
                 {room.name}
               </h1>
-              <div className="flex items-center gap-4">
-                <span className="text-2xl md:text-3xl font-bold text-primary font-garamond">
-                  {room.price}
-                </span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <span className="text-2xl md:text-3xl font-bold text-primary font-garamond block">
+                    {room.price}
+                  </span>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <span className="text-sm font-semibold text-gray-600 uppercase tracking-wide block mb-1">Capacity</span>
+                  <span className="text-lg font-semibold text-gray-900">{room.capacity}</span>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <span className="text-sm font-semibold text-gray-600 uppercase tracking-wide block mb-1">Room Size</span>
+                  <span className="text-lg font-semibold text-gray-900">{room.size}</span>
+                </div>
               </div>
             </div>
           </ScrollReveal>
@@ -173,7 +225,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                 <h2 className="text-2xl md:text-3xl font-bold text-primary font-garamond mb-6">
                   Room Amenities
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {room.amenities.map((am, idx) => (
                     <div 
                       key={idx} 
@@ -186,6 +238,21 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                     </div>
                   ))}
                 </div>
+                
+                {/* Extra Mattress Information */}
+                {room.id !== 'dormitory' && (
+                  <div className="bg-white border-2 border-primary/20 rounded-xl p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <i className="fas fa-plus text-primary"></i>
+                      </div>
+                      <div>
+                        <span className="text-gray-900 font-semibold">Extra Mattress Available</span>
+                        <p className="text-sm text-gray-600">Additional sleeping arrangements at ₹250/night per mattress</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </ScrollReveal>
@@ -196,36 +263,81 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
               <h2 className="text-2xl md:text-3xl font-bold text-primary font-garamond mb-6">
                 Book Your Stay
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Check-in Date</label>
-                  <input 
-                    type="date" 
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
-                  />
+              
+              <div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Check-in Date</label>
+                      <input 
+                        type="date" 
+                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Check-out Date</label>
+                      <input 
+                        type="date" 
+                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Guests</label>
+                      <input 
+                        type="number" 
+                        min="1" 
+                        max={room.id === 'dormitory' ? "1" : "10"} 
+                        defaultValue={room.id === 'dormitory' ? "1" : "2"}
+                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Extra mattress option for non-dormitory rooms */}
+                  {room.id !== 'dormitory' && (
+                    <div className="mb-6 p-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border-2 border-primary/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <i className="fas fa-bed text-primary text-lg"></i>
+                          <div>
+                            <h4 className="font-bold text-gray-900 text-base">Add Extra Mattress</h4>
+                            <p className="text-sm text-gray-600">Additional comfortable sleeping arrangements</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-2xl font-bold text-primary">₹250</span>
+                          <p className="text-sm text-gray-600">per night each</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">Number of Extra Mattresses</label>
+                          <input 
+                            type="number" 
+                            min="0" 
+                            max="3" 
+                            defaultValue="0"
+                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <div className="w-full">
+                            <p className="text-xs text-gray-600 mb-2">Features:</p>
+                            <ul className="text-xs text-gray-600 space-y-1">
+                              <li>• High-quality comfortable mattress</li>
+                              <li>• Fresh bed sheets & pillows included</li>
+                              <li>• Daily linen change available</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <button className="w-full md:w-auto bg-primary text-white px-10 py-4 rounded-full font-bold uppercase text-sm tracking-wider shadow-lg hover:bg-primaryDark hover:shadow-xl transition-all">
+                    <i className="fas fa-calendar-check mr-2"></i>
+                    Book Now
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Check-out Date</label>
-                  <input 
-                    type="date" 
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Guests</label>
-                  <input 
-                    type="number" 
-                    min="1" 
-                    max="10" 
-                    defaultValue="2"
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
-                  />
-                </div>
-              </div>
-              <button className="w-full md:w-auto bg-primary text-white px-10 py-4 rounded-full font-bold uppercase text-sm tracking-wider shadow-lg hover:bg-primaryDark hover:shadow-xl transition-all">
-                <i className="fas fa-calendar-check mr-2"></i>
-                Book Now
-              </button>
             </div>
           </ScrollReveal>
 

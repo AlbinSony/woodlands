@@ -14,7 +14,7 @@ const roomsData = [
       { icon: 'fa-users', text: '6 guests' },
     ],
     image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
-    price: '₹3,500',
+    price: '₹1,000',
   },
   {
     id: 2,
@@ -27,7 +27,7 @@ const roomsData = [
       { icon: 'fa-users', text: '3 guests' },
     ],
     image: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80',
-    price: '₹1,500',
+    price: '₹650',
   },
   {
     id: 3,
@@ -40,12 +40,12 @@ const roomsData = [
       { icon: 'fa-users', text: '8 guests' },
     ],
     image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
-    price: '₹6,000',
+    price: '₹1,800',
   },
   {
     id: 4,
     name: 'Dormitory',
-    description: 'Budget-friendly shared accommodation for backpackers and solo travelers. Meet fellow travelers while enjoying a comfortable and secure stay.',
+    description: 'Budget-friendly shared accommodation for backpackers and solo travelers. Meet fellow travelers while enjoying a comfortable and secure stay. Pricing is per person in shared dormitory.',
     features: [
       { icon: 'fa-bed', text: '60m2' },
       { icon: 'fa-user-group', text: '8 beds' },
@@ -53,7 +53,7 @@ const roomsData = [
       { icon: 'fa-users', text: '8 guests' },
     ],
     image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&q=80',
-    price: '₹500',
+    price: '₹250',
   },
 ];
 
@@ -72,9 +72,11 @@ const Rooms = () => {
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-3 md:mb-4 font-garamond">
               A Place That Fits You
             </h2>
-            <p className="text-sm md:text-base text-white/90 max-w-2xl mx-auto">
+            <p className="text-sm md:text-base text-white/90 max-w-2xl mx-auto mb-6">
               Choose from our variety of accommodations designed for every type of traveler
             </p>
+            
+
           </div>
         </ScrollReveal>
 
@@ -85,7 +87,7 @@ const Rooms = () => {
               <button
                 key={room.id}
                 onClick={() => setActiveRoom(index)}
-                className={`px-4 md:px-6 lg:px-8 py-2 md:py-2.5 font-semibold text-xs md:text-sm lg:text-base transition-all ${
+                className={`px-4 md:px-6 lg:px-8 py-2 md:py-2.5 font-semibold text-sm md:text-sm lg:text-base transition-all ${
                   activeRoom === index
                     ? 'text-white border-b-2 border-white'
                     : 'text-white/60 hover:text-white/90'
@@ -129,7 +131,9 @@ const Rooms = () => {
                 <div>
                   <div className="text-3xl md:text-4xl font-bold text-white font-garamond">
                     {roomsData[activeRoom].price}
-                    <span className="text-base md:text-lg text-white/70 font-normal">/night</span>
+                    <span className="text-base md:text-lg text-white/70 font-normal">
+                      {roomsData[activeRoom].name === 'Dormitory' ? '/night per head' : '/night'}
+                    </span>
                   </div>
                 </div>
                 <Link
