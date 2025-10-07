@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ScrollReveal from './ScrollReveal';
+import { fetchRoomCategories } from '../services/reservationApi';
 
 const BookingForm = () => {
   const [formData, setFormData] = useState({
@@ -9,9 +10,56 @@ const BookingForm = () => {
     checkIn: '',
     checkOut: '',
     guests: '1',
-    roomType: 'prime-deluxe',
+    roomType: 'primeDeluxe',
     message: '',
   });
+
+  const [roomCategories, setRoomCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  // Load room categories from API
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await fetchRoomCategories();
+        if (response.success) {
+          setRoomCategories(response.data);
+          // Set first available category as default
+          if (response.data.length > 0) {
+            setFormData(prev => ({ ...prev, roomType: response.data[0].type }));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load room categories:', error);
+        // Fallback to static data if API fails
+        setRoomCategories([
+          { type: 'primeDeluxe', max_capacity: 4, default_price: 1000 },
+          { type: 'economy', max_capacity: 3, default_price: 650 },
+          { type: 'fiveBedded', max_capacity: 8, default_price: 1800 },
+          { type: 'dormitory', max_capacity: 8, default_price: 250 }
+        ]);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  // Room type display names
+  const getRoomDisplayName = (type) => {
+    switch (type) {
+      case 'primeDeluxe': return 'Prime Deluxe Room';
+      case 'economy': return 'Economy Room';
+      case 'fiveBedded': return '5-Bedded Deluxe';
+      case 'dormitory': return 'Dormitory';
+      case 'dormitoryLg': return 'Dormitory Large';
+      case 'dormitorySm': return 'Dormitory Small';
+      default: 
+        // Convert camelCase or other formats to readable names
+        return type.charAt(0).toUpperCase() + type.slice(1).replace(/([A-Z])/g, ' $1');
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -33,7 +81,7 @@ const BookingForm = () => {
       checkIn: '',
       checkOut: '',
       guests: '1',
-      roomType: 'prime-deluxe',
+      roomType: roomCategories.length > 0 ? roomCategories[0].type : 'primeDeluxe',
       message: '',
     });
   };
@@ -156,12 +204,20 @@ const BookingForm = () => {
                       value={formData.roomType}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                      disabled={loadingCategories}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
-                      <option value="prime-deluxe">Prime Deluxe Room</option>
-                      <option value="economy">Economy Room</option>
-                      <option value="5-bedded">5-Bedded Deluxe</option>
-                      <option value="dormitory">Dormitory</option>
+                      {loadingCategories ? (
+                        <option value="">Loading room types...</option>
+                      ) : (
+                        roomCategories.map((category) => (
+                          <option key={category.type} value={category.type}>
+                            {getRoomDisplayName(category.type)} - ₹{category.default_price}/night
+                            {category.type === 'dormitory' ? ' (per head)' : ''}
+                            {' '}(Max: {category.max_capacity} guests)
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
                   <div>

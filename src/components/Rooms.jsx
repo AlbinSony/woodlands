@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ScrollReveal from './ScrollReveal';
 import { roomPricing } from '../roomData.js';
+import { fetchRoomCategories } from '../services/reservationApi';
 
 const roomsData = [
   {
@@ -60,6 +61,51 @@ const roomsData = [
 
 const Rooms = () => {
   const [activeRoom, setActiveRoom] = useState(0);
+  const [apiRoomCategories, setApiRoomCategories] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadRoomCategories = async () => {
+      try {
+        const response = await fetchRoomCategories();
+        if (response.success) {
+          setApiRoomCategories(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load room categories:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRoomCategories();
+  }, []);
+
+  // Update room prices with API data if available
+  const getUpdatedRoomsData = () => {
+    if (!apiRoomCategories) return roomsData;
+
+    return roomsData.map(room => {
+      const apiRoom = apiRoomCategories.find(apiRoom => {
+        if (room.id === 1) return apiRoom.type === 'primeDeluxe';
+        if (room.id === 2) return apiRoom.type === 'economy';
+        if (room.id === 3) return apiRoom.type === 'fiveBedded';
+        if (room.id === 4) return apiRoom.type === 'dormitory';
+        return false;
+      });
+
+      if (apiRoom) {
+        return {
+          ...room,
+          price: `₹${apiRoom.default_price}`,
+          maxCapacity: apiRoom.max_capacity
+        };
+      }
+      return room;
+    });
+  };
+
+  const displayRoomsData = getUpdatedRoomsData();
 
   return (
     <section id="rooms" className="py-12 md:py-16 lg:py-20 bg-primary">
@@ -84,7 +130,7 @@ const Rooms = () => {
         {/* Room Tabs */}
         <ScrollReveal delay={100}>
           <div className="flex flex-wrap justify-center gap-2 md:gap-4 mb-8 md:mb-10">
-            {roomsData.map((room, index) => (
+            {displayRoomsData.map((room, index) => (
               <button
                 key={room.id}
                 onClick={() => setActiveRoom(index)}
@@ -107,17 +153,17 @@ const Rooms = () => {
             <div className="order-2 lg:order-1">
               {/* Title */}
               <h3 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-4 md:mb-6 font-garamond">
-                {roomsData[activeRoom].name}
+                {displayRoomsData[activeRoom].name}
               </h3>
               
               {/* Description */}
               <p className="text-sm md:text-base text-white/90 mb-6 md:mb-8 leading-relaxed">
-                {roomsData[activeRoom].description}
+                {displayRoomsData[activeRoom].description}
               </p>
 
               {/* Features Grid */}
               <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-8">
-                {roomsData[activeRoom].features.map((feature, index) => (
+                {displayRoomsData[activeRoom].features.map((feature, index) => (
                   <div key={index} className="flex items-center gap-3">
                     <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
                       <i className={`fas ${feature.icon} text-white text-sm md:text-base`}></i>
@@ -131,9 +177,9 @@ const Rooms = () => {
               <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 pt-4 md:pt-6 border-t border-white/20">
                 <div>
                   <div className="text-3xl md:text-4xl font-bold text-white font-garamond">
-                    {roomsData[activeRoom].price}
+                    {loading ? '₹...' : displayRoomsData[activeRoom].price}
                     <span className="text-base md:text-lg text-white/70 font-normal">
-                      {roomsData[activeRoom].name === 'Dormitory' ? '/night per head' : '/night'}
+                      {displayRoomsData[activeRoom].name === 'Dormitory' ? '/night per head' : '/night'}
                     </span>
                   </div>
                 </div>
@@ -151,8 +197,8 @@ const Rooms = () => {
             <div className="order-1 lg:order-2">
               <div className="rounded-xl md:rounded-2xl overflow-hidden shadow-2xl">
                 <img
-                  src={roomsData[activeRoom].image}
-                  alt={roomsData[activeRoom].name}
+                  src={displayRoomsData[activeRoom].image}
+                  alt={displayRoomsData[activeRoom].name}
                   className="w-full h-64 md:h-80 lg:h-96 object-cover"
                   loading="lazy"
                 />

@@ -25,7 +25,7 @@ const Loader = () => {
   if (!loading) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-primary flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] bg-white flex items-center justify-center">
       <div className="text-center">
         {/* Logo */}
         <div className="mb-8 flex justify-center animate-pulse">
@@ -38,17 +38,17 @@ const Loader = () => {
         
         {/* Brand Text */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white font-garamond mb-3">
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-primary font-garamond mb-3">
             WOODLANDS
           </h1>
-          <p className="text-white/90 text-base md:text-lg tracking-widest font-medium">
+          <p className="text-primary/90 text-base md:text-lg tracking-widest font-medium">
             SINCE 1958
           </p>
         </div>
         
         {/* Spinner */}
         <div className="flex justify-center">
-          <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
         </div>
       </div>
     </div>

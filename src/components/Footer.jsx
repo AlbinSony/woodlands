@@ -12,7 +12,7 @@ const Footer = () => {
               <h4 className="text-2xl md:text-3xl font-bold mb-6 font-garamond text-white">
                 Sign up for our newsletter to receive special offers, news, and events.
               </h4>
-              <form className="flex flex-col sm:flex-row gap-4">
+              <form className="flex flex-col sm:flex-row gap-4 mb-6">
                 <input
                   type="email"
                   placeholder="example@gmail.com"
@@ -25,6 +25,34 @@ const Footer = () => {
                   Sign Up
                 </button>
               </form>
+              
+              {/* Policy Links */}
+              <div className="flex flex-wrap gap-4 md:gap-6 text-sm">
+                <a 
+                  href="/privacy-policy" 
+                  className="text-white/80 hover:text-white underline underline-offset-2 transition-colors"
+                >
+                  Privacy Policy
+                </a>
+                <a 
+                  href="/terms-conditions" 
+                  className="text-white/80 hover:text-white underline underline-offset-2 transition-colors"
+                >
+                  Terms & Conditions
+                </a>
+                <a 
+                  href="/refund-cancellation" 
+                  className="text-white/80 hover:text-white underline underline-offset-2 transition-colors"
+                >
+                  Refund & Cancellation
+                </a>
+                <a 
+                  href="/cookie-policy" 
+                  className="text-white/80 hover:text-white underline underline-offset-2 transition-colors"
+                >
+                  Cookie Policy
+                </a>
+              </div>
             </div>
           </ScrollReveal>
         </div>
@@ -161,12 +189,21 @@ const Footer = () => {
                 © {new Date().getFullYear()} Woodlands. All Rights Reserved.
               </p>
             </div>
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
-              <a href="#" className="hover:text-primary transition">
+            <div className="flex flex-wrap justify-center gap-4 md:gap-6 text-sm text-gray-600">
+              <a href="/privacy-policy" className="hover:text-primary transition">
+                Privacy Policy
+              </a>
+              <a href="/terms-conditions" className="hover:text-primary transition">
                 Terms & Conditions
               </a>
-              <a href="#" className="hover:text-primary transition">
-                Privacy Policy
+              <a href="/refund-cancellation" className="hover:text-primary transition">
+                Refund & Cancellation
+              </a>
+              <a href="/cookie-policy" className="hover:text-primary transition">
+                Cookie Policy
+              </a>
+              <a href="/contact" className="hover:text-primary transition">
+                Contact Us
               </a>
             </div>
           </div>

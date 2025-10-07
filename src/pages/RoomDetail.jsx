@@ -4,6 +4,7 @@ import Footer from "../components/Footer";
 import ScrollToTop from "../components/ScrollToTop";
 import ScrollReveal from "../components/ScrollReveal";
 import { roomPricing } from "../roomData.js";
+import { checkRoomAvailability, fetchRoomCategories } from '../services/reservationApi';
 
 // Room details data using centralized pricing
 const roomDetails = {
@@ -128,21 +129,22 @@ const roomDetails = {
 };
 
 // Booking calculation function
-const calcTotal = (checkIn, checkOut, guests, mattresses, roomId) => {
+const calcTotal = (checkIn, checkOut, guests, mattresses, roomId, selectedRoom = null, roomCount = 1) => {
   if (!checkIn || !checkOut) return 0;
   
   const nights = Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
   if (nights <= 0) return 0;
   
-  const basePrice = roomPricing[roomId];
+  // Use API price if available, otherwise use local pricing
+  const basePrice = selectedRoom?.price || roomPricing[roomId];
   let total = 0;
   
-  if (roomId === "dormitory") {
+  if (roomId === "dormitory" || roomId === "dormitoryLg" || roomId === "dormitorySm") {
     // Dormitory: price per head per night
     total = nights * basePrice * guests;
   } else {
-    // Regular rooms: base price + extra mattress cost
-    total = nights * basePrice + nights * mattresses * roomPricing.extraMattress;
+    // Regular rooms: base price per room * number of rooms + extra mattress cost
+    total = nights * basePrice * roomCount + nights * mattresses * (roomPricing.extraMattress || 250);
   }
   
   return total;
@@ -156,20 +158,90 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
   // Booking state
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
-  const [guests, setGuests] = useState(room.id === 'dormitory' ? 1 : 2);
+  const [guests, setGuests] = useState(2);
   const [mattresses, setMattresses] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
+  
+  // API integration states
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedRoomCount, setSelectedRoomCount] = useState(1);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityChecked, setAvailabilityChecked] = useState(false);
+  const [apiCategories, setApiCategories] = useState(null);
 
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [roomType]);
+
+  // Load room categories on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await fetchRoomCategories();
+        if (response.success) {
+          setApiCategories(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  // Check availability when dates change
+  const checkAvailability = async () => {
+    if (!checkIn || !checkOut) return;
+    
+    setAvailabilityLoading(true);
+    try {
+      const response = await checkRoomAvailability(checkIn, checkOut, room.id);
+      
+      if (response.success) {
+        // If API returns empty array but success=true, it means rooms are available
+        // Create fallback room objects when no specific data is returned
+        if (response.data.length === 0) {
+          // Create fallback available rooms based on room type
+          const fallbackRooms = Array.from({length: 5}, (_, i) => ({
+            id: `${room.id}_${i + 1}`,
+            price: roomPricing[room.id] || 1000,
+            props: {
+              name: room.name,
+              max_capacity: room.id === 'dormitory' ? 8 : (room.id === 'fiveBedded' ? 5 : 2),
+              add_ons: []
+            }
+          }));
+          setAvailableRooms(fallbackRooms);
+          setSelectedRoom(fallbackRooms[0]);
+        } else {
+          // Use actual API data when available
+          setAvailableRooms(response.data);
+          if (response.data.length > 0) {
+            setSelectedRoom(response.data[0]); // Auto-select first available room
+          }
+        }
+        setAvailabilityChecked(true);
+      } else {
+        // Only when success=false, treat as no rooms available
+        setAvailableRooms([]);
+        setAvailabilityChecked(true);
+      }
+    } catch (error) {
+      console.error('Failed to check availability:', error);
+      // On error, also treat as no rooms available
+      setAvailableRooms([]);
+      setAvailabilityChecked(true);
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  };
   
   // Calculate total price when booking details change
   useEffect(() => {
-    const total = calcTotal(checkIn, checkOut, guests, mattresses, room.id);
+    const total = calcTotal(checkIn, checkOut, guests, mattresses, room.id, selectedRoom, selectedRoomCount);
     setTotalPrice(total);
-  }, [checkIn, checkOut, guests, mattresses, room.id]);
+  }, [checkIn, checkOut, guests, mattresses, room.id, selectedRoom, selectedRoomCount]);
 
   return (
     <div className="bg-white min-h-screen flex flex-col">
@@ -302,7 +374,10 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                       <input 
                         type="date" 
                         value={checkIn}
-                        onChange={(e) => setCheckIn(e.target.value)}
+                        onChange={(e) => {
+                          setCheckIn(e.target.value);
+                          setAvailabilityChecked(false);
+                        }}
                         className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
                       />
                     </div>
@@ -311,7 +386,10 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                       <input 
                         type="date" 
                         value={checkOut}
-                        onChange={(e) => setCheckOut(e.target.value)}
+                        onChange={(e) => {
+                          setCheckOut(e.target.value);
+                          setAvailabilityChecked(false);
+                        }}
                         className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
                       />
                     </div>
@@ -321,14 +399,116 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                       </label>
                       <input 
                         type="number" 
-                        min="1" 
+                        min="0" 
                         max={room.id === 'dormitory' ? "8" : "10"} 
                         value={guests}
-                        onChange={(e) => setGuests(parseInt(e.target.value) || 1)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '' || value === '0') {
+                            setGuests(0);
+                          } else {
+                            setGuests(parseInt(value) || 0);
+                          }
+                        }}
                         className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
                       />
                     </div>
                   </div>
+
+                  {/* Check Availability Button */}
+                  <div className="mb-6">
+                    <button 
+                      onClick={checkAvailability}
+                      disabled={!checkIn || !checkOut || availabilityLoading}
+                      className="w-full md:w-auto bg-primary text-white px-8 py-3 rounded-full font-semibold text-sm tracking-wider shadow-lg hover:bg-primaryDark disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
+                    >
+                      {availabilityLoading ? (
+                        <>
+                          <i className="fas fa-spinner fa-spin mr-2"></i>
+                          Checking Availability...
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-search mr-2"></i>
+                          Check Availability
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Available Rooms Display */}
+                  {availabilityChecked && (
+                    <div className="mb-6 p-6 bg-gray-50 rounded-xl border-2 border-gray-200">
+                      {availableRooms.length === 0 ? (
+                        <div className="text-center py-8">
+                          <i className="fas fa-calendar-times text-gray-400 text-4xl mb-4"></i>
+                          <p className="text-gray-600">No rooms available for selected dates</p>
+                          <p className="text-sm text-gray-500">Please try different dates</p>
+                        </div>
+                      ) : (
+                        <div className="bg-white border-2 border-primary/20 rounded-xl p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                                <i className="fas fa-bed text-primary text-lg"></i>
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-gray-900 text-lg">
+                                  {availableRooms[0]?.props?.name || room.name}
+                                </h4>
+                                <p className="text-sm text-gray-600">
+                                  {availableRooms.length} room(s) available | Max {availableRooms[0]?.props?.max_capacity || 2} guests per room
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-primary">₹{availableRooms[0]?.price || roomPricing[room.id]}</div>
+                              <div className="text-sm text-gray-600">per night per room</div>
+                            </div>
+                          </div>
+                          
+                          {/* Room Selection */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Number of Rooms</label>
+                              <select 
+                                value={selectedRoomCount}
+                                onChange={(e) => {
+                                  const roomCount = parseInt(e.target.value);
+                                  setSelectedRoomCount(roomCount);
+                                  if (roomCount > 0 && availableRooms[0]) {
+                                    setSelectedRoom({...availableRooms[0], roomCount});
+                                  }
+                                }}
+                                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                              >
+                                {Array.from({length: Math.min(availableRooms.length, 5)}, (_, i) => (
+                                  <option key={i + 1} value={i + 1}>
+                                    {i + 1} Room{i > 0 ? 's' : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            
+                            {/* Available Add-ons */}
+                            {availableRooms[0]?.props?.add_ons && availableRooms[0].props.add_ons.length > 0 && (
+                              <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Available Add-ons</label>
+                                <div className="space-y-2">
+                                  {availableRooms[0].props.add_ons.map((addon, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium">{addon.name}</span>
+                                      <span className="text-sm text-primary font-semibold">+₹{addon.price}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   {/* Extra mattress option for non-dormitory rooms */}
                   {room.id !== 'dormitory' && (
@@ -372,9 +552,32 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                     </div>
                   )}
                   
-                  <button className="w-full md:w-auto bg-primary text-white px-10 py-4 rounded-full font-bold uppercase text-sm tracking-wider shadow-lg hover:bg-primaryDark hover:shadow-xl transition-all">
+                  {/* Total Price Display */}
+                  {checkIn && checkOut && totalPrice > 0 && (
+                    <div className="mb-6 p-4 bg-primary/5 rounded-xl border-2 border-primary/20">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="font-semibold text-gray-900">Total Cost</h4>
+                          <p className="text-sm text-gray-600">
+                            {Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))} night(s)
+                            {['dormitory', 'dormitoryLg', 'dormitorySm'].includes(room.id) ? ` × ${guests} person(s)` : ` × ${selectedRoomCount} room(s)`}
+                            {mattresses > 0 && !['dormitory', 'dormitoryLg', 'dormitorySm'].includes(room.id) ? ` + ${mattresses} extra mattress(es)` : ''}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-primary">₹{calcTotal(checkIn, checkOut, guests, mattresses, room.id, selectedRoom, selectedRoomCount).toLocaleString()}</div>
+                          <div className="text-sm text-gray-600">Total Amount</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <button 
+                    className="w-full md:w-auto bg-primary text-white px-10 py-4 rounded-full font-bold uppercase text-sm tracking-wider shadow-lg hover:bg-primaryDark hover:shadow-xl transition-all disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    disabled={availabilityChecked && availableRooms.length === 0}
+                  >
                     <i className="fas fa-calendar-check mr-2"></i>
-                    Book Now
+                    {availabilityChecked && availableRooms.length === 0 ? 'No Rooms Available' : 'Book Now'}
                   </button>
                 </div>
             </div>

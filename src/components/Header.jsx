@@ -45,8 +45,8 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition">
             <img 
-              src="/woodlandslogo.png" 
-              alt="Woodlands Logo" 
+              src="/trueneedslogo.svg" 
+              alt="True Needs Logo" 
               className="h-14 md:h-16 lg:h-18 w-auto object-contain"
             />
           </Link>
