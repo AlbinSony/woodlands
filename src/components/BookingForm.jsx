@@ -254,6 +254,21 @@ const BookingForm = () => {
                   />
                 </div>
 
+                {/* Extra Mattress Information */}
+                <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200/50">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <i className="fas fa-info-circle text-blue-600"></i>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-sm mb-1">Extra Mattress Available</h4>
+                      <p className="text-sm text-gray-600">
+                        At the time of check-in, you can avail extra mattress by paying additional charges for extra sleeping arrangements.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Submit Button */}
                 <button
                   type="submit"

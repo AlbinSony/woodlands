@@ -4,7 +4,7 @@ import Footer from "../components/Footer";
 import ScrollToTop from "../components/ScrollToTop";
 import ScrollReveal from "../components/ScrollReveal";
 import { roomPricing } from "../roomData.js";
-import { checkRoomAvailability, fetchRoomCategories } from '../services/reservationApi';
+import { checkRoomAvailability, fetchRoomCategories, holdRooms, cancelHold, createPaymentOrder, confirmBooking } from '../services/reservationApi';
 
 // Room details data using centralized pricing
 const roomDetails = {
@@ -129,7 +129,7 @@ const roomDetails = {
 };
 
 // Booking calculation function
-const calcTotal = (checkIn, checkOut, guests, mattresses, roomId, selectedRoom = null, roomCount = 1) => {
+const calcTotal = (checkIn, checkOut, guests, roomId, selectedRoom = null, roomCount = 1) => {
   if (!checkIn || !checkOut) return 0;
   
   const nights = Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
@@ -139,12 +139,13 @@ const calcTotal = (checkIn, checkOut, guests, mattresses, roomId, selectedRoom =
   const basePrice = selectedRoom?.price || roomPricing[roomId];
   let total = 0;
   
+  // Check if it's a dormitory type room (per person pricing)
   if (roomId === "dormitory" || roomId === "dormitoryLg" || roomId === "dormitorySm") {
     // Dormitory: price per head per night
     total = nights * basePrice * guests;
   } else {
-    // Regular rooms: base price per room * number of rooms + extra mattress cost
-    total = nights * basePrice * roomCount + nights * mattresses * (roomPricing.extraMattress || 250);
+    // Regular rooms: base price per room * number of rooms
+    total = nights * basePrice * roomCount;
   }
   
   return total;
@@ -159,7 +160,6 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(2);
-  const [mattresses, setMattresses] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
   
   // API integration states
@@ -169,11 +169,71 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
   const [apiCategories, setApiCategories] = useState(null);
+  
+  // Hold management states (silent - no UI display)
+  const [holdData, setHoldData] = useState(null);
+  const [holdLoading, setHoldLoading] = useState(false);
+  const [holdExpiry, setHoldExpiry] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState(null);
+  
+  // Booking modal states
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [guestInfo, setGuestInfo] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  
+  // Payment result states
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showFailureModal, setShowFailureModal] = useState(false);
+  const [bookingIds, setBookingIds] = useState([]);
+  const [paymentError, setPaymentError] = useState(null);
 
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [roomType]);
+
+  // Cleanup: Cancel hold when component unmounts (silent)
+  useEffect(() => {
+    return () => {
+      if (holdData?.hold_group_id) {
+        // Cancel hold on unmount silently
+        cancelHold(holdData.hold_group_id)
+          .then(() => console.log('🔓 Hold cancelled on unmount (silent)'))
+          .catch(err => console.error('Failed to cancel hold on unmount:', err));
+      }
+    };
+  }, [holdData]);
+
+  // Hold expiry timer (silent - runs in background)
+  useEffect(() => {
+    if (holdExpiry) {
+      const timer = setInterval(() => {
+        const now = new Date();
+        const expiry = new Date(holdExpiry);
+        const diff = expiry - now;
+        
+        if (diff <= 0) {
+          // Hold expired silently
+          console.warn('⏰ Hold expired (silent)');
+          setHoldData(null);
+          setHoldExpiry(null);
+          setTimeRemaining(null);
+          clearInterval(timer);
+        } else {
+          // Calculate remaining time (for console logging only)
+          const minutes = Math.floor(diff / 60000);
+          const seconds = Math.floor((diff % 60000) / 1000);
+          setTimeRemaining(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+        }
+      }, 1000);
+      
+      return () => clearInterval(timer);
+    }
+  }, [holdExpiry]);
 
   // Load room categories on mount
   useEffect(() => {
@@ -196,41 +256,64 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
     
     setAvailabilityLoading(true);
     try {
-      const response = await checkRoomAvailability(checkIn, checkOut, room.id);
+      // Don't pass type parameter - get all available rooms and filter client-side
+      const response = await checkRoomAvailability(checkIn, checkOut);
       
-      if (response.success) {
-        // If API returns empty array but success=true, it means rooms are available
-        // Create fallback room objects when no specific data is returned
-        if (response.data.length === 0) {
-          // Create fallback available rooms based on room type
-          const fallbackRooms = Array.from({length: 5}, (_, i) => ({
-            id: `${room.id}_${i + 1}`,
-            price: roomPricing[room.id] || 1000,
-            props: {
-              name: room.name,
-              max_capacity: room.id === 'dormitory' ? 8 : (room.id === 'fiveBedded' ? 5 : 2),
-              add_ons: []
-            }
-          }));
-          setAvailableRooms(fallbackRooms);
-          setSelectedRoom(fallbackRooms[0]);
-        } else {
-          // Use actual API data when available
-          setAvailableRooms(response.data);
-          if (response.data.length > 0) {
-            setSelectedRoom(response.data[0]); // Auto-select first available room
+      console.log('=== AVAILABILITY CHECK DEBUG ===');
+      console.log('Looking for room type:', room.id);
+      console.log('Full API Response:', response);
+      console.log('Available categories from API:', response.data?.map(r => ({ category: r.category, availableCount: r.availableCount })));
+      console.log('===============================');
+      
+      if (response.success && response.data && response.data.length > 0) {
+        // Direct mapping for exact matches
+        let matchedCategory = response.data.find(
+          item => item.category === room.id || item.props?.type === room.id
+        );
+        
+        // Special handling for dormitory - it can match dormitoryLg or dormitorySm
+        if (!matchedCategory && room.id === 'dormitory') {
+          // Prefer dormitoryLg, fallback to dormitorySm
+          matchedCategory = response.data.find(item => item.category === 'dormitoryLg' || item.props?.type === 'dormitoryLg')
+            || response.data.find(item => item.category === 'dormitorySm' || item.props?.type === 'dormitorySm');
+          
+          if (matchedCategory) {
+            console.log('✓ Dormitory matched to:', matchedCategory.category);
           }
         }
-        setAvailabilityChecked(true);
+        
+        console.log('Matched Category:', matchedCategory);
+        
+        if (matchedCategory && matchedCategory.availableCount > 0) {
+          // Set available rooms data from API
+          setAvailableRooms([matchedCategory]);
+          setSelectedRoom(matchedCategory);
+          setSelectedRoomCount(1); // Reset to 1 room
+          setAvailabilityChecked(true);
+          console.log('✓ Rooms available:', matchedCategory.availableCount);
+        } else {
+          // No rooms available for this category
+          console.warn('✗ No matching category found or availableCount is 0');
+          if (room.id === 'fiveBedded') {
+            console.error('⚠️ BACKEND BUG: The /availability endpoint does not return "fiveBedded" category!');
+            console.error('⚠️ FIX: Update your backend /reservations/availability endpoint to include "fiveBedded" rooms');
+          }
+          setAvailableRooms([]);
+          setSelectedRoom(null);
+          setAvailabilityChecked(true);
+        }
       } else {
-        // Only when success=false, treat as no rooms available
+        // No rooms available
+        console.warn('✗ API returned no data or success=false');
         setAvailableRooms([]);
+        setSelectedRoom(null);
         setAvailabilityChecked(true);
       }
     } catch (error) {
       console.error('Failed to check availability:', error);
-      // On error, also treat as no rooms available
+      // On error, treat as no rooms available
       setAvailableRooms([]);
+      setSelectedRoom(null);
       setAvailabilityChecked(true);
     } finally {
       setAvailabilityLoading(false);
@@ -239,9 +322,198 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
   
   // Calculate total price when booking details change
   useEffect(() => {
-    const total = calcTotal(checkIn, checkOut, guests, mattresses, room.id, selectedRoom, selectedRoomCount);
+    const total = calcTotal(checkIn, checkOut, guests, room.id, selectedRoom, selectedRoomCount);
     setTotalPrice(total);
-  }, [checkIn, checkOut, guests, mattresses, room.id, selectedRoom, selectedRoomCount]);
+  }, [checkIn, checkOut, guests, room.id, selectedRoom, selectedRoomCount]);
+
+  // Handle room hold (silent - runs in background)
+  const handleHoldRooms = async () => {
+    if (!checkIn || !checkOut || !selectedRoom) {
+      alert('Please check availability first');
+      return;
+    }
+    
+    setHoldLoading(true);
+    
+    try {
+      const roomRequests = [{
+        category: selectedRoom.category,
+        count: selectedRoomCount
+      }];
+      
+      console.log('🔒 Holding rooms silently:', { roomRequests, checkIn, checkOut });
+      
+      const response = await holdRooms(roomRequests, checkIn, checkOut);
+      
+      if (response.success && response.data) {
+        setHoldData(response.data);
+        setHoldExpiry(response.data.expires_at);
+        console.log('✓ Rooms held successfully (silent):', response.data);
+        console.log('Hold will expire at:', new Date(response.data.expires_at).toLocaleString());
+        
+        // Open booking confirmation modal
+        setShowBookingModal(true);
+      } else {
+        alert('Unable to reserve rooms. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to hold rooms:', error);
+      alert('Unable to reserve rooms. Please try again.');
+    } finally {
+      setHoldLoading(false);
+    }
+  };
+
+  // Handle cancel hold (silent - runs in background)
+  const handleCancelHold = async () => {
+    if (!holdData?.hold_group_id) return;
+    
+    try {
+      const response = await cancelHold(holdData.hold_group_id);
+      
+      if (response.success) {
+        setHoldData(null);
+        setHoldExpiry(null);
+        setTimeRemaining(null);
+        console.log('🔓 Hold cancelled successfully (silent)');
+      }
+    } catch (error) {
+      console.error('Failed to cancel hold:', error);
+    }
+  };
+
+  // Handle proceed to payment
+  const handleProceedToPayment = async () => {
+    // Validate guest information
+    if (!guestInfo.name || !guestInfo.email || !guestInfo.phone) {
+      alert('Please fill in all guest details');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(guestInfo.email)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    // Phone validation (10 digits)
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(guestInfo.phone)) {
+      alert('Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    setPaymentLoading(true);
+
+    try {
+      console.log('Creating payment order...');
+      
+      const response = await createPaymentOrder(
+        holdData.hold_group_id,
+        guestInfo.name,
+        guestInfo.email,
+        guestInfo.phone
+      );
+
+      if (response.success && response.data) {
+        console.log('✓ Payment order created:', response.data);
+        
+        // Initialize Razorpay
+        openRazorpayCheckout(response.data);
+      } else {
+        alert('Failed to create payment order. Please try again.');
+        setPaymentLoading(false);
+      }
+    } catch (error) {
+      console.error('Failed to create payment order:', error);
+      alert('Failed to create payment order. Please try again.');
+      setPaymentLoading(false);
+    }
+  };
+
+  // Open Razorpay Checkout
+  const openRazorpayCheckout = (orderData) => {
+    const options = {
+      key: 'rzp_test_RR0iKb0dkpQhhm', // Razorpay Key ID
+      amount: orderData.amount, // Amount in paise
+      currency: orderData.currency,
+      name: 'Woodlands Resort',
+      description: `${room.name} - ${selectedRoomCount} Room(s)`,
+      order_id: orderData.id,
+      prefill: {
+        name: guestInfo.name,
+        email: guestInfo.email,
+        contact: guestInfo.phone,
+      },
+      notes: orderData.notes,
+      theme: {
+        color: '#1e5631', // Primary color
+      },
+      handler: async function (response) {
+        // Payment successful
+        console.log('✓ Payment successful:', response);
+        await handlePaymentSuccess(response.razorpay_payment_id);
+      },
+      modal: {
+        ondismiss: function () {
+          // Payment modal closed without payment
+          console.log('Payment cancelled by user');
+          setPaymentLoading(false);
+          handlePaymentFailure('Payment cancelled by user');
+        },
+      },
+    };
+
+    const razorpay = new window.Razorpay(options);
+    
+    razorpay.on('payment.failed', function (response) {
+      // Payment failed
+      console.error('✗ Payment failed:', response.error);
+      handlePaymentFailure(response.error.description || 'Payment failed');
+    });
+
+    razorpay.open();
+  };
+
+  // Handle payment success
+  const handlePaymentSuccess = async (razorpayPaymentId) => {
+    try {
+      console.log('Confirming booking...');
+      
+      const response = await confirmBooking(
+        holdData.hold_group_id,
+        razorpayPaymentId
+      );
+
+      if (response.success && response.bookingIds) {
+        console.log('✓ Booking confirmed:', response.bookingIds);
+        
+        // Store booking IDs and show success modal
+        setBookingIds(response.bookingIds);
+        setShowBookingModal(false);
+        setShowSuccessModal(true);
+        setPaymentLoading(false);
+        
+        // Clear hold data as booking is confirmed
+        setHoldData(null);
+        setHoldExpiry(null);
+      } else {
+        throw new Error('Failed to confirm booking');
+      }
+    } catch (error) {
+      console.error('Failed to confirm booking:', error);
+      handlePaymentFailure('Payment successful but booking confirmation failed. Please contact support.');
+    }
+  };
+
+  // Handle payment failure
+  const handlePaymentFailure = (errorMessage) => {
+    setPaymentError(errorMessage);
+    setShowBookingModal(false);
+    setShowFailureModal(true);
+    setPaymentLoading(false);
+  };
 
   return (
     <div className="bg-white min-h-screen flex flex-col">
@@ -343,15 +615,15 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                 </div>
                 
                 {/* Extra Mattress Information */}
-                {room.id !== 'dormitory' && (
+                {room.id !== 'dormitoryLg' && room.id !== 'dormitorySm' && (
                   <div className="bg-white border-2 border-primary/20 rounded-xl p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <i className="fas fa-plus text-primary"></i>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i className="fas fa-info-circle text-primary"></i>
                       </div>
                       <div>
-                        <span className="text-gray-900 font-semibold">Extra Mattress Available</span>
-                        <p className="text-sm text-gray-600">Additional sleeping arrangements at ₹{roomPricing.extraMattress}/night per mattress</p>
+                        <span className="text-gray-900 font-semibold block mb-1">Additional Services Available</span>
+                        <p className="text-sm text-gray-600">At the time of check-in, you can avail extra mattress/bed and other add-ons by paying the applicable charges for additional sleeping arrangements.</p>
                       </div>
                     </div>
                   </div>
@@ -377,6 +649,10 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                         onChange={(e) => {
                           setCheckIn(e.target.value);
                           setAvailabilityChecked(false);
+                          // Cancel existing hold if dates change
+                          if (holdData) {
+                            handleCancelHold();
+                          }
                         }}
                         className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
                       />
@@ -389,29 +665,33 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                         onChange={(e) => {
                           setCheckOut(e.target.value);
                           setAvailabilityChecked(false);
+                          // Cancel existing hold if dates change
+                          if (holdData) {
+                            handleCancelHold();
+                          }
                         }}
                         className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        {room.id === 'dormitory' ? 'Number of Persons' : 'Guests'}
+                        {(room.id === 'dormitory' || room.id === 'dormitoryLg' || room.id === 'dormitorySm') ? 'Number of Persons' : 'Guests'}
                       </label>
                       <input 
                         type="number" 
-                        min="0" 
-                        max={room.id === 'dormitory' ? "8" : "10"} 
+                        min="1" 
+                        max={selectedRoom?.props?.max_capacity || (room.id === 'dormitory' || room.id === 'dormitoryLg' || room.id === 'dormitorySm' ? "28" : "10")} 
                         value={guests}
                         onChange={(e) => {
-                          const value = e.target.value;
-                          if (value === '' || value === '0') {
-                            setGuests(0);
-                          } else {
-                            setGuests(parseInt(value) || 0);
-                          }
+                          const value = parseInt(e.target.value) || 1;
+                          const maxCapacity = selectedRoom?.props?.max_capacity || (room.id === 'dormitory' || room.id === 'dormitoryLg' || room.id === 'dormitorySm' ? 28 : 10);
+                          setGuests(Math.min(value, maxCapacity));
                         }}
                         className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
                       />
+                      {selectedRoom?.props?.max_capacity && (
+                        <p className="text-xs text-gray-500 mt-1">Max capacity: {selectedRoom.props.max_capacity} guests</p>
+                      )}
                     </div>
                   </div>
 
@@ -442,8 +722,24 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                       {availableRooms.length === 0 ? (
                         <div className="text-center py-8">
                           <i className="fas fa-calendar-times text-gray-400 text-4xl mb-4"></i>
-                          <p className="text-gray-600">No rooms available for selected dates</p>
-                          <p className="text-sm text-gray-500">Please try different dates</p>
+                          <p className="text-gray-600 font-semibold">No rooms available for selected dates</p>
+                          <p className="text-sm text-gray-500 mb-2">Please try different dates</p>
+                          {room.id === 'fiveBedded' && (
+                            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              <p className="text-xs text-yellow-800">
+                                <i className="fas fa-exclamation-triangle mr-1"></i>
+                                Note: The backend API does not return availability for "fiveBedded" room type. 
+                                Please contact the backend developer to add this category to the /reservations/availability endpoint.
+                              </p>
+                            </div>
+                          )}
+                          <details className="mt-4 text-left">
+                            <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">Debug Info (Click to expand)</summary>
+                            <pre className="text-xs bg-gray-100 p-2 rounded mt-2 overflow-auto max-h-40">
+                              Looking for room type: {room.id}
+                              {'\n'}Check browser console (F12) for full API response details
+                            </pre>
+                          </details>
                         </div>
                       ) : (
                         <div className="bg-white border-2 border-primary/20 rounded-xl p-6">
@@ -457,13 +753,15 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                                   {availableRooms[0]?.props?.name || room.name}
                                 </h4>
                                 <p className="text-sm text-gray-600">
-                                  {availableRooms.length} room(s) available | Max {availableRooms[0]?.props?.max_capacity || 2} guests per room
+                                  {availableRooms[0]?.availableCount || 0} room(s) available | Max {availableRooms[0]?.props?.max_capacity || 2} guests per room
                                 </p>
                               </div>
                             </div>
                             <div className="text-right">
                               <div className="text-2xl font-bold text-primary">₹{availableRooms[0]?.price || roomPricing[room.id]}</div>
-                              <div className="text-sm text-gray-600">per night per room</div>
+                              <div className="text-sm text-gray-600">
+                                {room.id === 'dormitoryLg' || room.id === 'dormitorySm' ? 'per night per person' : 'per night per room'}
+                              </div>
                             </div>
                           </div>
                           
@@ -476,13 +774,10 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                                 onChange={(e) => {
                                   const roomCount = parseInt(e.target.value);
                                   setSelectedRoomCount(roomCount);
-                                  if (roomCount > 0 && availableRooms[0]) {
-                                    setSelectedRoom({...availableRooms[0], roomCount});
-                                  }
                                 }}
                                 className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                               >
-                                {Array.from({length: Math.min(availableRooms.length, 5)}, (_, i) => (
+                                {Array.from({length: Math.min(availableRooms[0]?.availableCount || 1, 10)}, (_, i) => (
                                   <option key={i + 1} value={i + 1}>
                                     {i + 1} Room{i > 0 ? 's' : ''}
                                   </option>
@@ -497,7 +792,10 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                                 <div className="space-y-2">
                                   {availableRooms[0].props.add_ons.map((addon, idx) => (
                                     <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                                      <span className="text-sm font-medium">{addon.name}</span>
+                                      <div>
+                                        <span className="text-sm font-medium">{addon.name}</span>
+                                        <p className="text-xs text-gray-500">{addon.description}</p>
+                                      </div>
                                       <span className="text-sm text-primary font-semibold">+₹{addon.price}</span>
                                     </div>
                                   ))}
@@ -510,43 +808,18 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                     </div>
                   )}
                   
-                  {/* Extra mattress option for non-dormitory rooms */}
-                  {room.id !== 'dormitory' && (
-                    <div className="mb-6 p-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border-2 border-primary/20">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <i className="fas fa-bed text-primary text-lg"></i>
-                          <div>
-                            <h4 className="font-bold text-gray-900 text-base">Add Extra Mattress</h4>
-                            <p className="text-sm text-gray-600">Additional comfortable sleeping arrangements</p>
-                          </div>
+                  {/* Extra Mattress/Add-ons Info Note */}
+                  {room.id !== 'dormitoryLg' && room.id !== 'dormitorySm' && (
+                    <div className="mb-6 p-4 bg-blue-50 rounded-xl border-2 border-blue-200/50">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <i className="fas fa-info-circle text-blue-600"></i>
                         </div>
-                        <div className="text-right">
-                          <span className="text-2xl font-bold text-primary">₹{roomPricing.extraMattress}</span>
-                          <p className="text-sm text-gray-600">per night each</p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">Number of Extra Mattresses</label>
-                          <input 
-                            type="number" 
-                            min="0" 
-                            max="3" 
-                            value={mattresses}
-                            onChange={(e) => setMattresses(parseInt(e.target.value) || 0)}
-                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
-                          />
-                        </div>
-                        <div className="flex items-end">
-                          <div className="w-full">
-                            <p className="text-xs text-gray-600 mb-2">Features:</p>
-                            <ul className="text-xs text-gray-600 space-y-1">
-                              <li>• High-quality comfortable mattress</li>
-                              <li>• Fresh bed sheets & pillows included</li>
-                              <li>• Daily linen change available</li>
-                            </ul>
-                          </div>
+                          <h4 className="font-semibold text-gray-900 text-sm mb-1">Additional Services Available</h4>
+                          <p className="text-sm text-gray-600">
+                            At the time of check-in, you can avail extra mattress/bed and other add-ons by paying the applicable charges for additional comfort.
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -560,24 +833,36 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                           <h4 className="font-semibold text-gray-900">Total Cost</h4>
                           <p className="text-sm text-gray-600">
                             {Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))} night(s)
-                            {['dormitory', 'dormitoryLg', 'dormitorySm'].includes(room.id) ? ` × ${guests} person(s)` : ` × ${selectedRoomCount} room(s)`}
-                            {mattresses > 0 && !['dormitory', 'dormitoryLg', 'dormitorySm'].includes(room.id) ? ` + ${mattresses} extra mattress(es)` : ''}
+                            {(room.id === 'dormitory' || room.id === 'dormitoryLg' || room.id === 'dormitorySm') 
+                              ? ` × ${guests} person(s)` 
+                              : ` × ${selectedRoomCount} room(s)`}
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-primary">₹{calcTotal(checkIn, checkOut, guests, mattresses, room.id, selectedRoom, selectedRoomCount).toLocaleString()}</div>
+                          <div className="text-2xl font-bold text-primary">₹{totalPrice.toLocaleString()}</div>
                           <div className="text-sm text-gray-600">Total Amount</div>
                         </div>
                       </div>
                     </div>
                   )}
 
+                  {/* Booking Button */}
                   <button 
+                    onClick={handleHoldRooms}
                     className="w-full md:w-auto bg-primary text-white px-10 py-4 rounded-full font-bold uppercase text-sm tracking-wider shadow-lg hover:bg-primaryDark hover:shadow-xl transition-all disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    disabled={availabilityChecked && availableRooms.length === 0}
+                    disabled={!availabilityChecked || availableRooms.length === 0 || holdLoading}
                   >
-                    <i className="fas fa-calendar-check mr-2"></i>
-                    {availabilityChecked && availableRooms.length === 0 ? 'No Rooms Available' : 'Book Now'}
+                    {holdLoading ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-calendar-check mr-2"></i>
+                        {availabilityChecked && availableRooms.length === 0 ? 'No Rooms Available' : 'Book Now'}
+                      </>
+                    )}
                   </button>
                 </div>
             </div>
@@ -600,6 +885,324 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
       </main>
       <Footer />
       <ScrollToTop />
+      
+      {/* Booking Confirmation Modal */}
+      {showBookingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="bg-primary text-white p-6 rounded-t-2xl">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold font-garamond mb-2">Confirm Your Booking</h2>
+                  <p className="text-white/90 text-sm">Please review your booking details</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowBookingModal(false);
+                    handleCancelHold();
+                  }}
+                  className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                >
+                  <i className="fas fa-times text-xl"></i>
+                </button>
+              </div>
+              
+              {/* Timer Display */}
+              {timeRemaining && (
+                <div className="mt-4 bg-white/10 rounded-lg p-3 flex items-center justify-between">
+                  <span className="text-sm">Rooms held for you</span>
+                  <span className="font-bold text-lg">
+                    <i className="fas fa-clock mr-2"></i>
+                    {timeRemaining}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              {/* Booking Summary */}
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Booking Summary</h3>
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Room Type</span>
+                    <span className="font-semibold text-gray-900">{room.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Check-in</span>
+                    <span className="font-semibold text-gray-900">{new Date(checkIn).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Check-out</span>
+                    <span className="font-semibold text-gray-900">{new Date(checkOut).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Nights</span>
+                    <span className="font-semibold text-gray-900">
+                      {Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Rooms</span>
+                    <span className="font-semibold text-gray-900">{selectedRoomCount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Guests</span>
+                    <span className="font-semibold text-gray-900">{guests}</span>
+                  </div>
+                  <div className="border-t border-gray-300 pt-3 mt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-bold text-gray-900">Total Amount</span>
+                      <span className="text-2xl font-bold text-primary">₹{totalPrice.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Guest Information Form */}
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Guest Information</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={guestInfo.name}
+                      onChange={(e) => setGuestInfo({ ...guestInfo, name: e.target.value })}
+                      placeholder="John Doe"
+                      className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={guestInfo.email}
+                      onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
+                      placeholder="john@example.com"
+                      className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={guestInfo.phone}
+                      onChange={(e) => setGuestInfo({ ...guestInfo, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      placeholder="9876543210"
+                      maxLength="10"
+                      className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">10-digit mobile number</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    setShowBookingModal(false);
+                    handleCancelHold();
+                  }}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-full font-semibold hover:bg-gray-50 transition"
+                  disabled={paymentLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleProceedToPayment}
+                  className="flex-1 px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-primaryDark transition disabled:bg-gray-400"
+                  disabled={paymentLoading}
+                >
+                  {paymentLoading ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-credit-card mr-2"></i>
+                      Proceed to Payment
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Payment Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
+            {/* Success Header */}
+            <div className="bg-green-600 text-white p-6 rounded-t-2xl text-center">
+              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                <i className="fas fa-check text-green-600 text-4xl"></i>
+              </div>
+              <h2 className="text-2xl font-bold font-garamond mb-2">Booking Confirmed!</h2>
+              <p className="text-white/90">Your payment was successful</p>
+            </div>
+
+            {/* Success Body */}
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <p className="text-gray-600 mb-4">
+                  Thank you for your booking at Woodlands Resort. We've sent a confirmation email to <strong>{guestInfo.email}</strong>
+                </p>
+                
+                <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                  <div className="text-sm text-gray-600 mb-2">Booking Reference</div>
+                  <div className="font-bold text-2xl text-primary">
+                    {bookingIds.map((id, index) => (
+                      <span key={id}>
+                        #{id}
+                        {index < bookingIds.length - 1 && ', '}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                    <i className="fas fa-info-circle text-blue-600 mr-2"></i>
+                    Booking Details
+                  </h4>
+                  <div className="space-y-1 text-sm text-gray-700">
+                    <div className="flex justify-between">
+                      <span>Room:</span>
+                      <span className="font-semibold">{room.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Check-in:</span>
+                      <span className="font-semibold">{new Date(checkIn).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Check-out:</span>
+                      <span className="font-semibold">{new Date(checkOut).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Rooms:</span>
+                      <span className="font-semibold">{selectedRoomCount}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Guests:</span>
+                      <span className="font-semibold">{guests}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-blue-300">
+                      <span>Total Paid:</span>
+                      <span className="font-bold text-lg text-primary">₹{totalPrice.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  // Reset form
+                  setGuestInfo({ name: '', email: '', phone: '' });
+                  setCheckIn('');
+                  setCheckOut('');
+                  setGuests(2);
+                  setAvailabilityChecked(false);
+                  setAvailableRooms([]);
+                }}
+                className="w-full bg-primary text-white px-6 py-3 rounded-full font-semibold hover:bg-primaryDark transition"
+              >
+                <i className="fas fa-home mr-2"></i>
+                Back to Home
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Failure Modal */}
+      {showFailureModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
+            {/* Failure Header */}
+            <div className="bg-red-600 text-white p-6 rounded-t-2xl text-center">
+              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                <i className="fas fa-times text-red-600 text-4xl"></i>
+              </div>
+              <h2 className="text-2xl font-bold font-garamond mb-2">Payment Failed</h2>
+              <p className="text-white/90">Your booking could not be completed</p>
+            </div>
+
+            {/* Failure Body */}
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <p className="text-gray-700">
+                    {paymentError || 'Payment was unsuccessful. Please try again.'}
+                  </p>
+                </div>
+
+                <p className="text-sm text-gray-600 mb-4">
+                  Don't worry, no amount has been deducted from your account. You can try booking again.
+                </p>
+
+                {holdData && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p className="text-xs text-yellow-800">
+                      <i className="fas fa-exclamation-triangle mr-1"></i>
+                      Your room hold is still active. You can try payment again or cancel to release the rooms.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setShowFailureModal(false);
+                    setPaymentError(null);
+                    // Reopen booking modal if hold is still active
+                    if (holdData) {
+                      setShowBookingModal(true);
+                    }
+                  }}
+                  className="w-full bg-primary text-white px-6 py-3 rounded-full font-semibold hover:bg-primaryDark transition"
+                >
+                  <i className="fas fa-redo mr-2"></i>
+                  Try Again
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setShowFailureModal(false);
+                    setPaymentError(null);
+                    // Cancel hold and reset
+                    if (holdData) {
+                      handleCancelHold();
+                    }
+                    setGuestInfo({ name: '', email: '', phone: '' });
+                  }}
+                  className="w-full border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-full font-semibold hover:bg-gray-50 transition"
+                >
+                  <i className="fas fa-times mr-2"></i>
+                  Cancel Booking
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

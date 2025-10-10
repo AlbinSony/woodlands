@@ -57,3 +57,81 @@ export const checkRoomAvailability = async (checkIn, checkOut, type = null) => {
     throw error;
   }
 };
+
+// Hold rooms before payment
+export const holdRooms = async (roomRequests, checkIn, checkOut, userId = null) => {
+  try {
+    const body = {
+      roomRequests,
+      checkIn,
+      checkOut,
+    };
+    
+    if (userId) {
+      body.userId = userId;
+    }
+    
+    const response = await apiRequest(API_ENDPOINTS.HOLD_ROOM, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    
+    return response;
+  } catch (error) {
+    console.error('Failed to hold rooms:', error);
+    throw error;
+  }
+};
+
+// Cancel hold
+export const cancelHold = async (holdGroupId) => {
+  try {
+    const response = await apiRequest(API_ENDPOINTS.CANCEL_HOLD, {
+      method: 'DELETE',
+      body: JSON.stringify({ holdGroupId }),
+    });
+    
+    return response;
+  } catch (error) {
+    console.error('Failed to cancel hold:', error);
+    throw error;
+  }
+};
+
+// Create payment order
+export const createPaymentOrder = async (holdGroupId, guestName, guestEmail, guestPhoneNumber) => {
+  try {
+    const response = await apiRequest(API_ENDPOINTS.CREATE_ORDER, {
+      method: 'POST',
+      body: JSON.stringify({
+        holdGroupId: holdGroupId.toString(),
+        guest_name: guestName,
+        guest_email: guestEmail,
+        guest_phone_number: guestPhoneNumber,
+      }),
+    });
+    
+    return response;
+  } catch (error) {
+    console.error('Failed to create payment order:', error);
+    throw error;
+  }
+};
+
+// Confirm booking after successful payment
+export const confirmBooking = async (holdGroupId, razorpayPaymentId) => {
+  try {
+    const response = await apiRequest(API_ENDPOINTS.CONFIRM_BOOKING, {
+      method: 'POST',
+      body: JSON.stringify({
+        holdGroupId: holdGroupId.toString(),
+        razorpayPaymentId,
+      }),
+    });
+    
+    return response;
+  } catch (error) {
+    console.error('Failed to confirm booking:', error);
+    throw error;
+  }
+};
