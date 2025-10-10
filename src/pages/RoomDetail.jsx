@@ -5,6 +5,7 @@ import ScrollToTop from "../components/ScrollToTop";
 import ScrollReveal from "../components/ScrollReveal";
 import { roomPricing } from "../roomData.js";
 import { checkRoomAvailability, fetchRoomCategories, holdRooms, cancelHold, createPaymentOrder, confirmBooking } from '../services/reservationApi';
+import jsPDF from 'jspdf';
 
 // Room details data using centralized pricing
 const roomDetails = {
@@ -190,6 +191,132 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [bookingIds, setBookingIds] = useState([]);
   const [paymentError, setPaymentError] = useState(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
+
+  // Generate and download booking voucher PDF
+  const downloadBookingVoucher = () => {
+    const doc = new jsPDF();
+    
+    // Add Woodlands logo (text-based since we don't have image URL)
+    doc.setFontSize(24);
+    doc.setTextColor(30, 86, 49); // Primary color
+    doc.text('WOODLANDS RESORT', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Kumily, Thekkady, Kerala, India', 105, 28, { align: 'center' });
+    doc.text('Phone: +91 94470 21958 | Email: info@woodlands.com', 105, 34, { align: 'center' });
+    
+    // Add horizontal line
+    doc.setDrawColor(30, 86, 49);
+    doc.setLineWidth(0.5);
+    doc.line(20, 40, 190, 40);
+    
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(30, 86, 49);
+    doc.text('BOOKING VOUCHER', 105, 52, { align: 'center' });
+    
+    // Booking Reference
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Booking Reference:', 20, 65);
+    doc.setFont(undefined, 'bold');
+    const bookingRef = bookingIds.map(id => `#${id}`).join(', ');
+    doc.text(bookingRef, 70, 65);
+    
+    // Booking Date
+    doc.setFont(undefined, 'normal');
+    doc.text('Booking Date:', 20, 73);
+    doc.setFont(undefined, 'bold');
+    doc.text(new Date().toLocaleDateString(), 70, 73);
+    
+    // Guest Details Section
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(30, 86, 49);
+    doc.text('Guest Information', 20, 88);
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Name: ${guestInfo.name}`, 20, 98);
+    doc.text(`Email: ${guestInfo.email}`, 20, 106);
+    doc.text(`Phone: ${guestInfo.phone}`, 20, 114);
+    
+    // Booking Details Section
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(30, 86, 49);
+    doc.text('Booking Details', 20, 130);
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Room Type: ${room.name}`, 20, 140);
+    doc.text(`Check-in Date: ${new Date(checkIn).toLocaleDateString('en-GB')}`, 20, 148);
+    doc.text(`Check-out Date: ${new Date(checkOut).toLocaleDateString('en-GB')}`, 20, 156);
+    
+    const nights = Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
+    doc.text(`Number of Nights: ${nights}`, 20, 164);
+    doc.text(`Number of Rooms: ${selectedRoomCount}`, 20, 172);
+    doc.text(`Number of Guests: ${guests}`, 20, 180);
+    
+    // Payment Details Section
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(30, 86, 49);
+    doc.text('Payment Details', 20, 196);
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    
+    const pricePerNight = selectedRoom?.price || roomPricing[room.id];
+    if (room.id === 'dormitory' || room.id === 'dormitoryLg' || room.id === 'dormitorySm') {
+      doc.text(`Price per Night (per person): ₹${pricePerNight}`, 20, 206);
+      doc.text(`Calculation: ${nights} nights × ${guests} persons × ₹${pricePerNight}`, 20, 214);
+    } else {
+      doc.text(`Price per Night (per room): ₹${pricePerNight}`, 20, 206);
+      doc.text(`Calculation: ${nights} nights × ${selectedRoomCount} rooms × ₹${pricePerNight}`, 20, 214);
+    }
+    
+    // Total Amount Box
+    doc.setFillColor(30, 86, 49);
+    doc.rect(20, 222, 170, 12, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(13);
+    doc.text('Total Amount Paid:', 25, 230);
+    doc.text(`₹${totalPrice.toLocaleString()}`, 160, 230);
+    
+    // Terms & Conditions
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(30, 86, 49);
+    doc.text('Important Information', 20, 246);
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0);
+    doc.text('• Check-in Time: 2:00 PM | Check-out Time: 11:00 AM', 20, 254);
+    doc.text('• Valid photo ID is required at check-in', 20, 260);
+    doc.text('• Please present this voucher at the time of check-in', 20, 266);
+    doc.text('• For any queries, contact us at +91 94470 21958', 20, 272);
+    
+    // Footer
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(20, 280, 190, 280);
+    
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Thank you for choosing Woodlands Resort. We look forward to hosting you!', 105, 286, { align: 'center' });
+    
+    // Save the PDF
+    const fileName = `Woodlands_Booking_${bookingIds[0]}_${new Date().getTime()}.pdf`;
+    doc.save(fileName);
+  };
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -435,7 +562,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
   // Open Razorpay Checkout
   const openRazorpayCheckout = (orderData) => {
     const options = {
-      key: 'rzp_test_RR0iKb0dkpQhhm', // Razorpay Key ID
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID, // ✅ Use environment variable
       amount: orderData.amount, // Amount in paise
       currency: orderData.currency,
       name: 'Woodlands Resort',
@@ -478,6 +605,9 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
 
   // Handle payment success
   const handlePaymentSuccess = async (razorpayPaymentId) => {
+    setShowBookingModal(false);
+    setProcessingPayment(true);
+    
     try {
       console.log('Confirming booking...');
       
@@ -491,7 +621,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
         
         // Store booking IDs and show success modal
         setBookingIds(response.bookingIds);
-        setShowBookingModal(false);
+        setProcessingPayment(false);
         setShowSuccessModal(true);
         setPaymentLoading(false);
         
@@ -503,6 +633,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
       }
     } catch (error) {
       console.error('Failed to confirm booking:', error);
+      setProcessingPayment(false);
       handlePaymentFailure('Payment successful but booking confirmation failed. Please contact support.');
     }
   };
@@ -511,9 +642,69 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
   const handlePaymentFailure = (errorMessage) => {
     setPaymentError(errorMessage);
     setShowBookingModal(false);
+    setProcessingPayment(false);
     setShowFailureModal(true);
     setPaymentLoading(false);
   };
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [roomType]);
+
+  // Cleanup: Cancel hold when component unmounts (silent)
+  useEffect(() => {
+    return () => {
+      if (holdData?.hold_group_id) {
+        // Cancel hold on unmount silently
+        cancelHold(holdData.hold_group_id)
+          .then(() => console.log('🔓 Hold cancelled on unmount (silent)'))
+          .catch(err => console.error('Failed to cancel hold on unmount:', err));
+      }
+    };
+  }, [holdData]);
+
+  // Hold expiry timer (silent - runs in background)
+  useEffect(() => {
+    if (holdExpiry) {
+      const timer = setInterval(() => {
+        const now = new Date();
+        const expiry = new Date(holdExpiry);
+        const diff = expiry - now;
+        
+        if (diff <= 0) {
+          // Hold expired silently
+          console.warn('⏰ Hold expired (silent)');
+          setHoldData(null);
+          setHoldExpiry(null);
+          setTimeRemaining(null);
+          clearInterval(timer);
+        } else {
+          // Calculate remaining time (for console logging only)
+          const minutes = Math.floor(diff / 60000);
+          const seconds = Math.floor((diff % 60000) / 1000);
+          setTimeRemaining(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+        }
+      }, 1000);
+      
+      return () => clearInterval(timer);
+    }
+  }, [holdExpiry]);
+
+  // Load room categories on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await fetchRoomCategories();
+        if (response.success) {
+          setApiCategories(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
 
   return (
     <div className="bg-white min-h-screen flex flex-col">
@@ -723,50 +914,34 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                         <div className="text-center py-8">
                           <i className="fas fa-calendar-times text-gray-400 text-4xl mb-4"></i>
                           <p className="text-gray-600 font-semibold">No rooms available for selected dates</p>
-                          <p className="text-sm text-gray-500 mb-2">Please try different dates</p>
-                          {room.id === 'fiveBedded' && (
-                            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                              <p className="text-xs text-yellow-800">
-                                <i className="fas fa-exclamation-triangle mr-1"></i>
-                                Note: The backend API does not return availability for "fiveBedded" room type. 
-                                Please contact the backend developer to add this category to the /reservations/availability endpoint.
-                              </p>
-                            </div>
-                          )}
-                          <details className="mt-4 text-left">
-                            <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">Debug Info (Click to expand)</summary>
-                            <pre className="text-xs bg-gray-100 p-2 rounded mt-2 overflow-auto max-h-40">
-                              Looking for room type: {room.id}
-                              {'\n'}Check browser console (F12) for full API response details
-                            </pre>
-                          </details>
+                          <p className="text-sm text-gray-500">Please try different dates</p>
                         </div>
                       ) : (
-                        <div className="bg-white border-2 border-primary/20 rounded-xl p-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                        <div className="bg-white border-2 border-primary/20 rounded-xl p-4 md:p-6">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                            <div className="flex items-start md:items-center gap-3">
+                              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                                 <i className="fas fa-bed text-primary text-lg"></i>
                               </div>
                               <div>
-                                <h4 className="font-bold text-gray-900 text-lg">
+                                <h4 className="font-bold text-gray-900 text-base md:text-lg">
                                   {availableRooms[0]?.props?.name || room.name}
                                 </h4>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-xs md:text-sm text-gray-600">
                                   {availableRooms[0]?.availableCount || 0} room(s) available | Max {availableRooms[0]?.props?.max_capacity || 2} guests per room
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-2xl font-bold text-primary">₹{availableRooms[0]?.price || roomPricing[room.id]}</div>
-                              <div className="text-sm text-gray-600">
+                            <div className="text-left md:text-right">
+                              <div className="text-xl md:text-2xl font-bold text-primary">₹{availableRooms[0]?.price || roomPricing[room.id]}</div>
+                              <div className="text-xs md:text-sm text-gray-600">
                                 {room.id === 'dormitoryLg' || room.id === 'dormitorySm' ? 'per night per person' : 'per night per room'}
                               </div>
                             </div>
                           </div>
                           
                           {/* Room Selection */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
                               <label className="block text-sm font-semibold text-gray-700 mb-2">Number of Rooms</label>
                               <select 
@@ -803,6 +978,25 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                               </div>
                             )}
                           </div>
+
+                          {/* Book Now Button - Moved Here */}
+                          <button 
+                            onClick={handleHoldRooms}
+                            className="w-full bg-primary text-white px-6 py-3 rounded-full font-bold uppercase text-sm tracking-wider shadow-lg hover:bg-primaryDark hover:shadow-xl transition-all disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            disabled={holdLoading}
+                          >
+                            {holdLoading ? (
+                              <>
+                                <i className="fas fa-spinner fa-spin mr-2"></i>
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <i className="fas fa-calendar-check mr-2"></i>
+                                Book Now
+                              </>
+                            )}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -833,9 +1027,9 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                           <h4 className="font-semibold text-gray-900">Total Cost</h4>
                           <p className="text-sm text-gray-600">
                             {Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))} night(s)
-                            {(room.id === 'dormitory' || room.id === 'dormitoryLg' || room.id === 'dormitorySm') 
+                            {(room.id === 'dormitory' || room.id === 'dormitoryLg' || room.id === 'dormitorySm' 
                               ? ` × ${guests} person(s)` 
-                              : ` × ${selectedRoomCount} room(s)`}
+                              : ` × ${selectedRoomCount} room(s)`)}
                           </p>
                         </div>
                         <div className="text-right">
@@ -846,24 +1040,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                     </div>
                   )}
 
-                  {/* Booking Button */}
-                  <button 
-                    onClick={handleHoldRooms}
-                    className="w-full md:w-auto bg-primary text-white px-10 py-4 rounded-full font-bold uppercase text-sm tracking-wider shadow-lg hover:bg-primaryDark hover:shadow-xl transition-all disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    disabled={!availabilityChecked || availableRooms.length === 0 || holdLoading}
-                  >
-                    {holdLoading ? (
-                      <>
-                        <i className="fas fa-spinner fa-spin mr-2"></i>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <i className="fas fa-calendar-check mr-2"></i>
-                        {availabilityChecked && availableRooms.length === 0 ? 'No Rooms Available' : 'Book Now'}
-                      </>
-                    )}
-                  </button>
+                  {/* Remove the old Booking Button from here - it's now in the available rooms section */}
                 </div>
             </div>
           </ScrollReveal>
@@ -886,34 +1063,34 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
       <Footer />
       <ScrollToTop />
       
-      {/* Booking Confirmation Modal */}
+      {/* Booking Confirmation Modal - Improved Mobile Layout */}
       {showBookingModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="bg-primary text-white p-6 rounded-t-2xl">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-2xl font-bold font-garamond mb-2">Confirm Your Booking</h2>
-                  <p className="text-white/90 text-sm">Please review your booking details</p>
+            <div className="bg-primary text-white p-4 md:p-6 rounded-t-2xl">
+              <div className="flex justify-between items-start gap-3">
+                <div className="flex-1">
+                  <h2 className="text-lg md:text-2xl font-bold font-garamond mb-1 md:mb-2">Confirm Your Booking</h2>
+                  <p className="text-white/90 text-xs md:text-sm">Please review your booking details</p>
                 </div>
                 <button
                   onClick={() => {
                     setShowBookingModal(false);
                     handleCancelHold();
                   }}
-                  className="text-white hover:bg-white/20 rounded-full p-2 transition"
+                  className="text-white hover:bg-white/20 rounded-full p-2 transition flex-shrink-0"
                 >
-                  <i className="fas fa-times text-xl"></i>
+                  <i className="fas fa-times text-lg md:text-xl"></i>
                 </button>
               </div>
               
               {/* Timer Display */}
               {timeRemaining && (
-                <div className="mt-4 bg-white/10 rounded-lg p-3 flex items-center justify-between">
-                  <span className="text-sm">Rooms held for you</span>
-                  <span className="font-bold text-lg">
-                    <i className="fas fa-clock mr-2"></i>
+                <div className="mt-3 md:mt-4 bg-white/10 rounded-lg p-2 md:p-3 flex items-center justify-between text-sm md:text-base">
+                  <span className="text-xs md:text-sm">Rooms held for you</span>
+                  <span className="font-bold text-base md:text-lg">
+                    <i className="fas fa-clock mr-1 md:mr-2"></i>
                     {timeRemaining}
                   </span>
                 </div>
@@ -921,52 +1098,52 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               {/* Booking Summary */}
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Booking Summary</h3>
-                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Room Type</span>
-                    <span className="font-semibold text-gray-900">{room.name}</span>
+              <div className="mb-4 md:mb-6">
+                <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3 md:mb-4">Booking Summary</h3>
+                <div className="bg-gray-50 rounded-xl p-3 md:p-4 space-y-2 md:space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs md:text-sm text-gray-600">Room Type</span>
+                    <span className="font-semibold text-sm md:text-base text-gray-900 text-right">{room.name}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Check-in</span>
-                    <span className="font-semibold text-gray-900">{new Date(checkIn).toLocaleDateString()}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs md:text-sm text-gray-600">Check-in</span>
+                    <span className="font-semibold text-sm md:text-base text-gray-900">{new Date(checkIn).toLocaleDateString()}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Check-out</span>
-                    <span className="font-semibold text-gray-900">{new Date(checkOut).toLocaleDateString()}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs md:text-sm text-gray-600">Check-out</span>
+                    <span className="font-semibold text-sm md:text-base text-gray-900">{new Date(checkOut).toLocaleDateString()}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Nights</span>
-                    <span className="font-semibold text-gray-900">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs md:text-sm text-gray-600">Nights</span>
+                    <span className="font-semibold text-sm md:text-base text-gray-900">
                       {Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Rooms</span>
-                    <span className="font-semibold text-gray-900">{selectedRoomCount}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs md:text-sm text-gray-600">Rooms</span>
+                    <span className="font-semibold text-sm md:text-base text-gray-900">{selectedRoomCount}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Guests</span>
-                    <span className="font-semibold text-gray-900">{guests}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs md:text-sm text-gray-600">Guests</span>
+                    <span className="font-semibold text-sm md:text-base text-gray-900">{guests}</span>
                   </div>
-                  <div className="border-t border-gray-300 pt-3 mt-3">
+                  <div className="border-t border-gray-300 pt-2 md:pt-3 mt-2 md:mt-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-lg font-bold text-gray-900">Total Amount</span>
-                      <span className="text-2xl font-bold text-primary">₹{totalPrice.toLocaleString()}</span>
+                      <span className="text-base md:text-lg font-bold text-gray-900">Total Amount</span>
+                      <span className="text-xl md:text-2xl font-bold text-primary">₹{totalPrice.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Guest Information Form */}
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Guest Information</h3>
-                <div className="space-y-4">
+              <div className="mb-4 md:mb-6">
+                <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3 md:mb-4">Guest Information</h3>
+                <div className="space-y-3 md:space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1.5 md:mb-2">
                       Full Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -974,12 +1151,12 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                       value={guestInfo.name}
                       onChange={(e) => setGuestInfo({ ...guestInfo, name: e.target.value })}
                       placeholder="John Doe"
-                      className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                      className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base rounded-lg border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1.5 md:mb-2">
                       Email Address <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -987,12 +1164,12 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                       value={guestInfo.email}
                       onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
                       placeholder="john@example.com"
-                      className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                      className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base rounded-lg border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1.5 md:mb-2">
                       Phone Number <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -1001,7 +1178,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                       onChange={(e) => setGuestInfo({ ...guestInfo, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                       placeholder="9876543210"
                       maxLength="10"
-                      className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                      className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base rounded-lg border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                       required
                     />
                     <p className="text-xs text-gray-500 mt-1">10-digit mobile number</p>
@@ -1010,20 +1187,20 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
                 <button
                   onClick={() => {
                     setShowBookingModal(false);
                     handleCancelHold();
                   }}
-                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-full font-semibold hover:bg-gray-50 transition"
+                  className="flex-1 px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base border-2 border-gray-300 text-gray-700 rounded-full font-semibold hover:bg-gray-50 transition"
                   disabled={paymentLoading}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleProceedToPayment}
-                  className="flex-1 px-6 py-3 bg-primary text-white rounded-full font-semibold hover:bg-primaryDark transition disabled:bg-gray-400"
+                  className="flex-1 px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base bg-primary text-white rounded-full font-semibold hover:bg-primaryDark transition disabled:bg-gray-400"
                   disabled={paymentLoading}
                 >
                   {paymentLoading ? (
@@ -1033,11 +1210,36 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                     </>
                   ) : (
                     <>
-                      <i className="fas fa-credit-card mr-2"></i>
+                      <i className="fas fa-credit-card mr-1 md:mr-2"></i>
                       Proceed to Payment
                     </>
                   )}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Payment Processing Overlay */}
+      {processingPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center">
+            <div className="mb-6">
+              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <i className="fas fa-spinner fa-spin text-primary text-3xl"></i>
+              </div>
+              <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
+                Processing Payment
+              </h3>
+              <p className="text-sm md:text-base text-gray-600 mb-4">
+                Please wait while we confirm your booking...
+              </p>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-xs md:text-sm text-yellow-800 font-medium">
+                  <i className="fas fa-exclamation-triangle mr-2"></i>
+                  Do not refresh or close this page
+                </p>
               </div>
             </div>
           </div>
@@ -1076,7 +1278,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left mb-4">
                   <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
                     <i className="fas fa-info-circle text-blue-600 mr-2"></i>
                     Booking Details
@@ -1108,6 +1310,15 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                     </div>
                   </div>
                 </div>
+
+                {/* Download Voucher Button */}
+                <button
+                  onClick={downloadBookingVoucher}
+                  className="w-full bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primaryDark transition mb-3 flex items-center justify-center gap-2"
+                >
+                  <i className="fas fa-download"></i>
+                  Download Booking Voucher (PDF)
+                </button>
               </div>
 
               <button
@@ -1121,7 +1332,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                   setAvailabilityChecked(false);
                   setAvailableRooms([]);
                 }}
-                className="w-full bg-primary text-white px-6 py-3 rounded-full font-semibold hover:bg-primaryDark transition"
+                className="w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-full font-semibold hover:bg-gray-200 transition"
               >
                 <i className="fas fa-home mr-2"></i>
                 Back to Home
