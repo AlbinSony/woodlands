@@ -9,13 +9,12 @@ const BookingForm = () => {
     phone: '',
     checkIn: '',
     checkOut: '',
-    guests: '1',
-    roomType: 'primeDeluxe',
     message: '',
   });
 
   const [roomCategories, setRoomCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [selectedRooms, setSelectedRooms] = useState([]);
 
   // Load room categories from API
   useEffect(() => {
@@ -24,10 +23,6 @@ const BookingForm = () => {
         const response = await fetchRoomCategories();
         if (response.success) {
           setRoomCategories(response.data);
-          // Set first available category as default
-          if (response.data.length > 0) {
-            setFormData(prev => ({ ...prev, roomType: response.data[0].type }));
-          }
         }
       } catch (error) {
         console.error('Failed to load room categories:', error);
@@ -53,12 +48,64 @@ const BookingForm = () => {
       case 'economy': return 'Economy Room';
       case 'fiveBedded': return '5-Bedded Deluxe';
       case 'dormitory': return 'Dormitory';
-      case 'dormitoryLg': return 'Dormitory Large';
-      case 'dormitorySm': return 'Dormitory Small';
       default: 
         // Convert camelCase or other formats to readable names
         return type.charAt(0).toUpperCase() + type.slice(1).replace(/([A-Z])/g, ' $1');
     }
+  };
+
+  // Add a room to the selection
+  const handleAddRoom = (roomType) => {
+    const category = roomCategories.find(cat => cat.type === roomType);
+    if (!category) return;
+
+    const newRoom = {
+      id: Date.now(), // Unique ID for this room selection
+      type: roomType,
+      count: 1,
+      guests: 1,
+      maxCapacity: category.max_capacity,
+      price: category.default_price
+    };
+
+    setSelectedRooms([...selectedRooms, newRoom]);
+  };
+
+  // Remove a room from the selection
+  const handleRemoveRoom = (roomId) => {
+    setSelectedRooms(selectedRooms.filter(room => room.id !== roomId));
+  };
+
+  // Update room count
+  const handleUpdateRoomCount = (roomId, count) => {
+    setSelectedRooms(selectedRooms.map(room => 
+      room.id === roomId ? { ...room, count: Math.max(1, count) } : room
+    ));
+  };
+
+  // Update guest count
+  const handleUpdateGuestCount = (roomId, guests) => {
+    setSelectedRooms(selectedRooms.map(room => 
+      room.id === roomId ? { ...room, guests: Math.max(1, Math.min(guests, room.maxCapacity)) } : room
+    ));
+  };
+
+  // Calculate total price
+  const calculateTotalPrice = () => {
+    if (!formData.checkIn || !formData.checkOut) return 0;
+    
+    const nights = Math.ceil((new Date(formData.checkOut) - new Date(formData.checkIn)) / (1000 * 60 * 60 * 24));
+    if (nights <= 0) return 0;
+
+    return selectedRooms.reduce((total, room) => {
+      if (room.type === 'dormitory') {
+        // Dormitory: price per head per night
+        return total + (nights * room.price * room.guests);
+      } else {
+        // Regular rooms: base price per room * number of rooms
+        return total + (nights * room.price * room.count);
+      }
+    }, 0);
   };
 
   const handleChange = (e) => {
@@ -70,9 +117,22 @@ const BookingForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate at least one room is selected
+    if (selectedRooms.length === 0) {
+      alert('Please select at least one room type');
+      return;
+    }
+
     // Handle form submission (integrate with backend or email service)
-    console.log('Form submitted:', formData);
+    console.log('Form submitted:', {
+      ...formData,
+      selectedRooms,
+      totalPrice: calculateTotalPrice()
+    });
+    
     alert('Thank you! We will contact you shortly to confirm your booking.');
+    
     // Reset form
     setFormData({
       name: '',
@@ -80,10 +140,9 @@ const BookingForm = () => {
       phone: '',
       checkIn: '',
       checkOut: '',
-      guests: '1',
-      roomType: roomCategories.length > 0 ? roomCategories[0].type : 'primeDeluxe',
       message: '',
     });
+    setSelectedRooms([]);
   };
 
   return (
@@ -192,50 +251,106 @@ const BookingForm = () => {
                   </div>
                 </div>
 
-                {/* Room Type & Guests */}
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="roomType" className="block text-sm font-medium text-gray-700 mb-2">
-                      Room Type *
-                    </label>
-                    <select
-                      id="roomType"
-                      name="roomType"
-                      value={formData.roomType}
-                      onChange={handleChange}
-                      required
-                      disabled={loadingCategories}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
+                {/* Room Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Room Types *
+                  </label>
+                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                    <div className="grid grid-cols-1 gap-3">
                       {loadingCategories ? (
-                        <option value="">Loading room types...</option>
+                        <div className="text-center py-4 text-gray-500">
+                          <i className="fas fa-spinner fa-spin mr-2"></i>
+                          Loading room types...
+                        </div>
                       ) : (
                         roomCategories.map((category) => (
-                          <option key={category.type} value={category.type}>
-                            {getRoomDisplayName(category.type)} - ₹{category.default_price}/night
-                            {category.type === 'dormitory' ? ' (per head)' : ''}
-                            {' '}(Max: {category.max_capacity} guests)
-                          </option>
+                          <button
+                            key={category.type}
+                            type="button"
+                            onClick={() => handleAddRoom(category.type)}
+                            className="flex items-center justify-between p-3 bg-white border-2 border-gray-200 rounded-lg hover:border-primary hover:bg-primary/5 transition text-left"
+                          >
+                            <div className="flex-1">
+                              <div className="font-semibold text-gray-900">
+                                {getRoomDisplayName(category.type)}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                ₹{category.default_price}/{category.type === 'dormitory' ? 'night per head' : 'night'}
+                                {' • '}Max: {category.max_capacity} guests
+                              </div>
+                            </div>
+                            <div className="ml-3">
+                              <i className="fas fa-plus-circle text-primary text-xl"></i>
+                            </div>
+                          </button>
                         ))
                       )}
-                    </select>
+                    </div>
                   </div>
-                  <div>
-                    <label htmlFor="guests" className="block text-sm font-medium text-gray-700 mb-2">
-                      Guests *
-                    </label>
-                    <input
-                      type="number"
-                      id="guests"
-                      name="guests"
-                      value={formData.guests}
-                      onChange={handleChange}
-                      min="1"
-                      max="10"
-                      required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
-                    />
-                  </div>
+
+                  {/* Selected Rooms Display */}
+                  {selectedRooms.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">Selected Rooms:</span>
+                        <span className="text-sm text-gray-500">{selectedRooms.length} type(s)</span>
+                      </div>
+                      {selectedRooms.map((room) => (
+                        <div key={room.id} className="bg-white border-2 border-primary/20 rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">
+                                {getRoomDisplayName(room.type)}
+                              </h4>
+                              <p className="text-sm text-gray-600">
+                                ₹{room.price}/{room.type === 'dormitory' ? 'night per head' : 'night'}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveRoom(room.id)}
+                              className="text-red-500 hover:text-red-700 transition"
+                            >
+                              <i className="fas fa-times-circle text-xl"></i>
+                            </button>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            {room.type !== 'dormitory' && (
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                  Number of Rooms
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="10"
+                                  value={room.count}
+                                  onChange={(e) => handleUpdateRoomCount(room.id, parseInt(e.target.value) || 1)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition text-sm"
+                                />
+                              </div>
+                            )}
+                            <div className={room.type !== 'dormitory' ? '' : 'col-span-2'}>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                                {room.type === 'dormitory' ? 'Number of Persons' : 'Guests per Room'}
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                max={room.maxCapacity}
+                                value={room.guests}
+                                onChange={(e) => handleUpdateGuestCount(room.id, parseInt(e.target.value) || 1)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition text-sm"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">Max: {room.maxCapacity}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Message */}
@@ -268,6 +383,24 @@ const BookingForm = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Total Price Display */}
+                {selectedRooms.length > 0 && formData.checkIn && formData.checkOut && (
+                  <div className="bg-primary/5 rounded-lg p-4 border-2 border-primary/20">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">Estimated Total</h4>
+                        <p className="text-sm text-gray-600">
+                          {Math.ceil((new Date(formData.checkOut) - new Date(formData.checkIn)) / (1000 * 60 * 60 * 24))} night(s)
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-primary">₹{calculateTotalPrice().toLocaleString()}</div>
+                        <div className="text-sm text-gray-600">Total Amount</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Submit Button */}
                 <button

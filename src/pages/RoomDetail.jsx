@@ -141,7 +141,7 @@ const calcTotal = (checkIn, checkOut, guests, roomId, selectedRoom = null, roomC
   let total = 0;
   
   // Check if it's a dormitory type room (per person pricing)
-  if (roomId === "dormitory" || roomId === "dormitoryLg" || roomId === "dormitorySm") {
+  if (roomId === "dormitory") {
     // Dormitory: price per head per night
     total = nights * basePrice * guests;
   } else {
@@ -273,7 +273,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
     doc.setTextColor(0, 0, 0);
     
     const pricePerNight = selectedRoom?.price || roomPricing[room.id];
-    if (room.id === 'dormitory' || room.id === 'dormitoryLg' || room.id === 'dormitorySm') {
+    if (room.id === 'dormitory') {
       doc.text(`Price per Night (per person): ₹${pricePerNight}`, 20, 206);
       doc.text(`Calculation: ${nights} nights × ${guests} persons × ₹${pricePerNight}`, 20, 214);
     } else {
@@ -397,17 +397,6 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
         let matchedCategory = response.data.find(
           item => item.category === room.id || item.props?.type === room.id
         );
-        
-        // Special handling for dormitory - it can match dormitoryLg or dormitorySm
-        if (!matchedCategory && room.id === 'dormitory') {
-          // Prefer dormitoryLg, fallback to dormitorySm
-          matchedCategory = response.data.find(item => item.category === 'dormitoryLg' || item.props?.type === 'dormitoryLg')
-            || response.data.find(item => item.category === 'dormitorySm' || item.props?.type === 'dormitorySm');
-          
-          if (matchedCategory) {
-            console.log('✓ Dormitory matched to:', matchedCategory.category);
-          }
-        }
         
         console.log('Matched Category:', matchedCategory);
         
@@ -791,22 +780,20 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                 <h2 className="text-2xl md:text-3xl font-bold text-primary font-garamond mb-6">
                   Room Amenities
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2 mb-6">
                   {room.amenities.map((am, idx) => (
-                    <div 
+                    <li 
                       key={idx} 
-                      className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md hover:shadow-lg transition-shadow"
+                      className="text-gray-700 text-sm flex items-start gap-2"
                     >
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                        <i className="fas fa-check text-primary"></i>
-                      </div>
-                      <span className="text-gray-900 font-medium">{am}</span>
-                    </div>
+                      <span className="text-primary mt-1">•</span>
+                      <span>{am}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
                 
                 {/* Extra Mattress Information */}
-                {room.id !== 'dormitoryLg' && room.id !== 'dormitorySm' && (
+                {room.id !== 'dormitory' && (
                   <div className="bg-white border-2 border-primary/20 rounded-xl p-4">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
@@ -866,16 +853,16 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        {(room.id === 'dormitory' || room.id === 'dormitoryLg' || room.id === 'dormitorySm') ? 'Number of Persons' : 'Guests'}
+                        {room.id === 'dormitory' ? 'Number of Persons' : 'Guests'}
                       </label>
                       <input 
                         type="number" 
                         min="1" 
-                        max={selectedRoom?.props?.max_capacity || (room.id === 'dormitory' || room.id === 'dormitoryLg' || room.id === 'dormitorySm' ? "28" : "10")} 
+                        max={selectedRoom?.props?.max_capacity || (room.id === 'dormitory' ? "28" : "10")} 
                         value={guests}
                         onChange={(e) => {
                           const value = parseInt(e.target.value) || 1;
-                          const maxCapacity = selectedRoom?.props?.max_capacity || (room.id === 'dormitory' || room.id === 'dormitoryLg' || room.id === 'dormitorySm' ? 28 : 10);
+                          const maxCapacity = selectedRoom?.props?.max_capacity || (room.id === 'dormitory' ? 28 : 10);
                           setGuests(Math.min(value, maxCapacity));
                         }}
                         className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" 
@@ -935,7 +922,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                             <div className="text-left md:text-right">
                               <div className="text-xl md:text-2xl font-bold text-primary">₹{availableRooms[0]?.price || roomPricing[room.id]}</div>
                               <div className="text-xs md:text-sm text-gray-600">
-                                {room.id === 'dormitoryLg' || room.id === 'dormitorySm' ? 'per night per person' : 'per night per room'}
+                                {room.id === 'dormitory' ? 'per night per person' : 'per night per room'}
                               </div>
                             </div>
                           </div>
@@ -1003,7 +990,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                   )}
                   
                   {/* Extra Mattress/Add-ons Info Note */}
-                  {room.id !== 'dormitoryLg' && room.id !== 'dormitorySm' && (
+                  {room.id !== 'dormitory' && (
                     <div className="mb-6 p-4 bg-blue-50 rounded-xl border-2 border-blue-200/50">
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -1027,7 +1014,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
                           <h4 className="font-semibold text-gray-900">Total Cost</h4>
                           <p className="text-sm text-gray-600">
                             {Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))} night(s)
-                            {(room.id === 'dormitory' || room.id === 'dormitoryLg' || room.id === 'dormitorySm' 
+                            {(room.id === 'dormitory'
                               ? ` × ${guests} person(s)` 
                               : ` × ${selectedRoomCount} room(s)`)}
                           </p>

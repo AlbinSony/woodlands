@@ -84,7 +84,7 @@ const Header = () => {
           {/* Book Now Button & Mobile Menu Toggle */}
           <div className="flex items-center gap-4">
             <a
-              href="#book"
+              href="#rooms"
               className="hidden md:flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-full font-medium text-sm uppercase tracking-wide hover:bg-primaryDark transition shadow-lg"
             >
               <i className="fas fa-calendar-check"></i>
@@ -153,7 +153,7 @@ const Header = () => {
               </li>
               <li>
                 <a
-                  href="#book"
+                  href="#rooms"
                   className="flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-full font-medium text-sm uppercase tracking-wide hover:bg-primaryDark transition w-fit"
                   onClick={() => setMobileMenuOpen(false)}
                 >

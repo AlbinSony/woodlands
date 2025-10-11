@@ -9,7 +9,6 @@ import Experiences from './components/Experiences';
 import Amenities from './components/Amenities';
 import Testimonials from './components/Testimonials';
 import Gallery from './components/Gallery';
-import BookingForm from './components/BookingForm';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -59,7 +58,6 @@ function App() {
       <Amenities />
       <Testimonials />
       <Gallery />
-      <BookingForm />
       <Footer />
       <ScrollToTop />
     </div>
