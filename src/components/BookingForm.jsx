@@ -424,7 +424,7 @@ const BookingForm = () => {
                 </h3>
                 <div className="space-y-4">
                   <a
-                    href="tel:+919447021958"
+                    href="tel:+919447990411"
                     className="flex items-center gap-4 hover:bg-primary/5 p-3 rounded-lg transition"
                   >
                     <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
@@ -432,7 +432,7 @@ const BookingForm = () => {
                     </div>
                     <div>
                       <div className="text-sm text-gray-600">Call Us</div>
-                      <div className="font-semibold text-lg text-gray-900">+91 94470 21958</div>
+                      <div className="font-semibold text-lg text-gray-900">+91 94479 90411</div>
                     </div>
                   </a>
                   <a

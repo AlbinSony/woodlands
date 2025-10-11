@@ -35,7 +35,7 @@ const TermsConditions = () => {
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Reservation and Booking</h2>
                 <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
                   <li>All reservations are subject to availability</li>
-                  <li>Check-in time: 2:00 PM | Check-out time: 11:00 AM</li>
+                  <li>Check-in time: Any time | Check-out time: 12:00 PM (Noon)</li>
                   <li>Early check-in and late check-out are subject to availability and may incur additional charges</li>
                   <li>Valid photo ID is required at check-in</li>
                   <li>Payment must be made in full at the time of booking or check-in</li>
@@ -108,7 +108,7 @@ const TermsConditions = () => {
                     <strong>Email:</strong> <a href="mailto:info@woodlands.com" className="text-primary hover:underline">info@woodlands.com</a>
                   </p>
                   <p className="text-gray-700 mb-2">
-                    <strong>Phone:</strong> <a href="tel:+919447021958" className="text-primary hover:underline">+91 94470 21958</a>
+                    <strong>Phone:</strong> <a href="tel:+919447990411" className="text-primary hover:underline">+91 94479 90411</a>
                   </p>
                   <p className="text-gray-700">
                     <strong>Address:</strong> Kumily, Thekkady, Kerala, India

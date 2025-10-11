@@ -37,7 +37,7 @@ const roomDetails = {
     capacity: "Accommodates up to 4 guests",
     size: "Spacious 80m² room with modern furnishing",
     terms:
-      "Check-in: 2:00 PM | Check-out: 11:00 AM. No smoking inside rooms. Prior approval required for pets. 24-hour cancellation policy applies. Extra charges for additional services.",
+      "Check-in: Any time | Check-out: 12:00 PM (Noon). No smoking inside rooms. Prior approval required for pets. 24-hour cancellation policy applies. Extra charges for additional services.",
   },
   economy: {
     id: "economy",
@@ -64,7 +64,7 @@ const roomDetails = {
     capacity: "Accommodates up to 3 guests",
     size: "Cozy 40m² room with essential facilities",
     terms:
-      "Check-in: 2:00 PM | Check-out: 11:00 AM. No smoking inside rooms. Pets not allowed. 24-hour cancellation policy applies. Extra charges for additional services.",
+      "Check-in: Any time | Check-out: 12:00 PM (Noon). No smoking inside rooms. Pets not allowed. 24-hour cancellation policy applies. Extra charges for additional services.",
   },
   fiveBedded: {
     id: "fiveBedded",
@@ -96,7 +96,7 @@ const roomDetails = {
     capacity: "Accommodates up to 8 guests comfortably",
     size: "Spacious 120m² room with 5 comfortable beds",
     terms:
-      "Check-in: 2:00 PM | Check-out: 11:00 AM. No smoking inside rooms. Prior approval required for pets. 24-hour cancellation policy applies. Group bookings require advance payment.",
+      "Check-in: Any time | Check-out: 12:00 PM (Noon). No smoking inside rooms. Prior approval required for pets. 24-hour cancellation policy applies. Group bookings require advance payment.",
   },
   dormitory: {
     id: "dormitory",
@@ -125,7 +125,7 @@ const roomDetails = {
     capacity: "8 beds in shared dormitory",
     size: "60m² shared space with individual bed allocation",
     terms:
-      "Check-in: 2:00 PM | Check-out: 11:00 AM. No smoking in dormitory. Alcohol not permitted in shared areas. Quiet hours: 10 PM - 7 AM. Personal belongings security is guest's responsibility.",
+      "Check-in: Any time | Check-out: 12:00 PM (Noon). No smoking in dormitory. Alcohol not permitted in shared areas. Quiet hours: 10 PM - 7 AM. Personal belongings security is guest's responsibility.",
   },
 };
 
@@ -205,7 +205,7 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
     doc.text('Kumily, Thekkady, Kerala, India', 105, 28, { align: 'center' });
-    doc.text('Phone: +91 94470 21958 | Email: info@woodlands.com', 105, 34, { align: 'center' });
+    doc.text('Phone: +91 94479 90411 | Email: info@woodlands.com', 105, 34, { align: 'center' });
     
     // Add horizontal line
     doc.setDrawColor(30, 86, 49);
@@ -299,10 +299,10 @@ const RoomDetail = ({ roomType = "primeDeluxe" }) => {
     doc.setFont(undefined, 'normal');
     doc.setFontSize(9);
     doc.setTextColor(0, 0, 0);
-    doc.text('• Check-in Time: 2:00 PM | Check-out Time: 11:00 AM', 20, 254);
+    doc.text('• Check-in Time: Any time | Check-out Time: 12:00 PM (Noon)', 20, 254);
     doc.text('• Valid photo ID is required at check-in', 20, 260);
     doc.text('• Please present this voucher at the time of check-in', 20, 266);
-    doc.text('• For any queries, contact us at +91 94470 21958', 20, 272);
+    doc.text('• For any queries, contact us at +91 94479 90411', 20, 272);
     
     // Footer
     doc.setDrawColor(200, 200, 200);

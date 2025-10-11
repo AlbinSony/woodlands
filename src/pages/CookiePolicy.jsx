@@ -179,7 +179,7 @@ const CookiePolicy = () => {
                     <strong>Email:</strong> <a href="mailto:privacy@woodlands.com" className="text-primary hover:underline">privacy@woodlands.com</a>
                   </p>
                   <p className="text-gray-700 mb-2">
-                    <strong>Phone:</strong> <a href="tel:+919447021958" className="text-primary hover:underline">+91 94470 21958</a>
+                    <strong>Phone:</strong> <a href="tel:+919447990411" className="text-primary hover:underline">+91 94479 90411</a>
                   </p>
                   <p className="text-gray-700">
                     <strong>Address:</strong> Kumily, Thekkady, Kerala, India

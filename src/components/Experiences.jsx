@@ -7,7 +7,7 @@ const experiencesData = [
     title: 'Jeep Safari Tours',
     image: 'https://images.unsplash.com/photo-1533587851505-d119e13fa0d7?w=800&q=80',
     description: 'Embark on an exciting guided safari tour through the wilderness. Experience the thrill of spotting wildlife in their natural habitat while exploring the rugged terrain of Periyar Tiger Reserve.',
-    contact: 'Questions? - Call us at +91 94470 21958',
+    contact: 'Questions? - Call us at +91 94479 90411',
     buttonText: 'Book Safari',
   },
   {
@@ -15,7 +15,7 @@ const experiencesData = [
     title: 'Ayurvedic Treatments',
     image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80',
     description: 'Rejuvenate your body and mind with authentic traditional Ayurvedic wellness treatments. Our experienced practitioners offer personalized therapies using natural herbs and ancient techniques.',
-    contact: 'Questions? - Call us at +91 94470 21958',
+    contact: 'Questions? - Call us at +91 94479 90411',
     buttonText: 'Book Treatment',
   },
   {
@@ -23,7 +23,7 @@ const experiencesData = [
     title: 'Campfire Evenings',
     image: 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=800&q=80',
     description: 'Enjoy cozy campfire gatherings under the stars. Share stories, roast marshmallows, and create unforgettable memories with family and friends in the serene ambiance of nature.',
-    contact: 'Questions? - Call us at +91 94470 21958',
+    contact: 'Questions? - Call us at +91 94479 90411',
     buttonText: 'Reserve Spot',
   },
   {
@@ -31,7 +31,7 @@ const experiencesData = [
     title: 'Cultural Experiences',
     image: 'https://images.unsplash.com/photo-1569006898109-4ea8edecd9f4?w=800&q=80',
     description: 'Immerse yourself in Kerala\'s vibrant cultural heritage. Visit the nearby Kalari Payattu and Navarasa Kathakali Centre to witness traditional martial arts and classical dance performances.',
-    contact: 'Questions? - Call us at +91 94470 21958',
+    contact: 'Questions? - Call us at +91 94479 90411',
     buttonText: 'Learn More',
   },
 ];

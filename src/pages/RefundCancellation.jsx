@@ -112,7 +112,7 @@ const RefundCancellation = () => {
                 </p>
                 <ol className="list-decimal list-inside text-gray-700 mb-4 space-y-2">
                   <li>Email us at <a href="mailto:bookings@woodlands.com" className="text-primary hover:underline">bookings@woodlands.com</a></li>
-                  <li>Call us at <a href="tel:+919447021958" className="text-primary hover:underline">+91 94470 21958</a></li>
+                  <li>Call us at <a href="tel:+919447990411" className="text-primary hover:underline">+91 94479 90411</a></li>
                   <li>Provide your booking confirmation number</li>
                   <li>State your reason for cancellation</li>
                   <li>We will process your request within 24 hours</li>
@@ -129,10 +129,10 @@ const RefundCancellation = () => {
                     <strong>Email:</strong> <a href="mailto:bookings@woodlands.com" className="text-primary hover:underline">bookings@woodlands.com</a>
                   </p>
                   <p className="text-gray-700 mb-2">
-                    <strong>Phone:</strong> <a href="tel:+919447021958" className="text-primary hover:underline">+91 94470 21958</a>
+                    <strong>Phone:</strong> <a href="tel:+919447990411" className="text-primary hover:underline">+91 94479 90411</a>
                   </p>
                   <p className="text-gray-700 mb-2">
-                    <strong>WhatsApp:</strong> <a href="https://wa.me/919447021958" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">+91 94470 21958</a>
+                    <strong>WhatsApp:</strong> <a href="https://wa.me/919447990411" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">+91 94479 90411</a>
                   </p>
                   <p className="text-gray-700">
                     <strong>Office Hours:</strong> 24/7 Customer Support
